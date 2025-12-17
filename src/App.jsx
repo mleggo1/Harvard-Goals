@@ -363,20 +363,39 @@ export default function App() {
     };
   }, [planner.vision10, planner.notes, planner.focusWord, planner.weeklyMantra, planner.celebrationPlan, planner.goals]);
 
-  // Resize textareas before print
+  // Resize textareas before print - CRITICAL for showing all content
   useEffect(() => {
     const handleBeforePrint = () => {
+      // Force all textareas to expand to show ALL content
       const textareas = document.querySelectorAll('textarea');
       textareas.forEach((textarea) => {
+        // Remove all height constraints
         textarea.style.height = "auto";
+        textarea.style.minHeight = "auto";
+        textarea.style.maxHeight = "none";
+        // Calculate and set height based on full content
         const scrollHeight = textarea.scrollHeight;
-        textarea.style.height = `${scrollHeight}px`;
-        textarea.style.minHeight = `${scrollHeight}px`;
+        // Add extra padding to ensure nothing is cut off
+        textarea.style.height = `${scrollHeight + 20}px`;
+        textarea.style.minHeight = `${scrollHeight + 20}px`;
+        // Force visible overflow
+        textarea.style.overflow = "visible";
+        textarea.style.overflowY = "visible";
+        textarea.style.overflowX = "visible";
       });
     };
 
+    // Also handle afterprint to restore if needed
+    const handleAfterPrint = () => {
+      // Textareas will auto-resize on next content change
+    };
+
     window.addEventListener('beforeprint', handleBeforePrint);
-    return () => window.removeEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
   }, []);
 
   useEffect(() => {
