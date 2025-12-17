@@ -341,17 +341,43 @@ export default function App() {
     const resizeTextareas = () => {
       const textareas = document.querySelectorAll('textarea');
       textareas.forEach((textarea) => {
+        // Reset height to auto first
         textarea.style.height = "auto";
-        textarea.style.height = `${textarea.scrollHeight}px`;
+        // Set height to scrollHeight to fit all content
+        const scrollHeight = textarea.scrollHeight;
+        textarea.style.height = `${scrollHeight}px`;
+        // Ensure min-height doesn't constrain
+        textarea.style.minHeight = `${scrollHeight}px`;
       });
     };
     
     resizeTextareas();
     // Also resize after a short delay to ensure content is rendered
     const timeout = setTimeout(resizeTextareas, 100);
+    // Resize again after a longer delay for print preparation
+    const timeout2 = setTimeout(resizeTextareas, 500);
     
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(timeout2);
+    };
   }, [planner.vision10, planner.notes, planner.focusWord, planner.weeklyMantra, planner.celebrationPlan, planner.goals]);
+
+  // Resize textareas before print
+  useEffect(() => {
+    const handleBeforePrint = () => {
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach((textarea) => {
+        textarea.style.height = "auto";
+        const scrollHeight = textarea.scrollHeight;
+        textarea.style.height = `${scrollHeight}px`;
+        textarea.style.minHeight = `${scrollHeight}px`;
+      });
+    };
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    return () => window.removeEventListener('beforeprint', handleBeforePrint);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme === "day" ? "day" : "night";

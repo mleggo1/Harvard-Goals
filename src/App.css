@@ -1943,6 +1943,27 @@ body::before {
     filter: none !important;
   }
 
+  /* Remove all height constraints on containers */
+  .focus-card,
+  .card,
+  .goal-card,
+  .goal-card__body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Remove flex constraints that might limit expansion */
+  .focus-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .focus-card textarea,
+  .focus-card input {
+    flex: none !important;
+  }
+
   /* Prevent text cutoff - ensure all text areas show full content */
   .goal-title-input,
   .focus-card textarea,
@@ -1963,15 +1984,30 @@ body::before {
     display: block !important;
   }
 
-  /* Ensure focus cards show all content in print */
+  /* Add bottom padding to boxes so text isn't cut off */
   .focus-card {
-    height: auto !important;
-    min-height: auto !important;
+    padding-bottom: 24px !important;
+}
+
+.card {
+    padding-bottom: 24px !important;
   }
 
-  .focus-card textarea {
-    height: auto !important;
-    min-height: auto !important;
+  .goal-card {
+    padding-bottom: 16px !important;
+  }
+
+  .field {
+    margin-bottom: 12px !important;
+  }
+
+  /* Ensure textareas calculate full height based on content */
+  .focus-card textarea,
+  .field textarea,
+  .goal-title-input,
+  .goal-grid textarea {
+    /* Remove min-height constraint and let content determine height */
+    min-height: 1px !important;
   }
 
   /* Optimize page breaks - only break when necessary */
@@ -2081,6 +2117,34 @@ body::before {
 
   .goal-grid textarea {
     min-height: 60px;
+  }
+
+  /* Force all textareas to expand fully in print - critical for visibility */
+  textarea {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    /* Remove any height constraints - let content determine height */
+    line-height: 1.5 !important;
+  }
+
+  /* Ensure containers don't constrain textareas */
+  .focus-card,
+  .card,
+  .goal-card {
+    overflow: visible !important;
+  }
+
+  /* Add extra bottom spacing to prevent cutoff */
+  .focus-card textarea,
+  .field textarea,
+  .goal-title-input,
+  .goal-grid textarea {
+    margin-bottom: 8px !important;
+    padding-bottom: 16px !important;
   }
 }
 @media (max-width: 1024px) {
