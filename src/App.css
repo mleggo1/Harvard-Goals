@@ -1919,9 +1919,39 @@ body::before {
   }
 
   .app-shell {
-    gap: 16px;
+    gap: 12px;
   }
 
+  /* Make heading black for print */
+  .app-hero h1,
+  .hero-title {
+    background: #0f172a !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #0f172a !important;
+    background-clip: unset !important;
+    color: #0f172a !important;
+    animation: none !important;
+    filter: none !important;
+  }
+
+  /* Prevent text cutoff - ensure all text areas show full content */
+  .goal-title-input,
+  .focus-card textarea,
+  .focus-card input,
+  .card textarea,
+  .goal-grid textarea {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    min-height: auto !important;
+  }
+
+  /* Optimize page breaks - only break when necessary */
   .app-hero,
   .focus-section,
   .focus-card,
@@ -1934,35 +1964,50 @@ body::before {
     break-inside: avoid;
   }
 
+  /* Remove forced page breaks - let content flow naturally */
   .app-hero {
-    page-break-after: always;
+    page-break-after: auto;
+    margin-bottom: 12px;
   }
 
   .focus-section {
-    page-break-after: always;
+    page-break-after: auto;
+    margin-bottom: 12px;
   }
 
   .focus-card {
     page-break-after: auto;
-}
+    margin-bottom: 8px;
+  }
 
-.card {
-    page-break-after: always;
-    page-break-before: always;
+  .card {
+    page-break-after: auto;
+    page-break-before: auto;
+    margin-bottom: 12px;
   }
 
   .card-add-goal {
-    page-break-after: always;
-    page-break-before: always;
+    page-break-after: auto;
+    page-break-before: auto;
+    margin-bottom: 12px;
   }
 
+  /* Bring goals board up if space allows */
   .card-goal-board {
-    page-break-before: always;
+    page-break-before: auto;
+    margin-top: 0;
   }
 
+  /* Only break goal cards if they don't fit */
   .goal-card {
-    page-break-after: always;
-    page-break-before: always;
+    page-break-after: auto;
+    page-break-before: auto;
+    margin-bottom: 12px;
+  }
+
+  /* Break goal card only if it's too large for page */
+  .goal-card:has(.goal-card__body) {
+    page-break-inside: avoid;
   }
 
   .planner-grid {
@@ -1989,6 +2034,30 @@ body::before {
   .file-actions,
   .btn {
     display: none;
+  }
+
+  /* Reduce padding and gaps for print to fit more content */
+  .app-hero {
+    padding: 20px 24px;
+    gap: 12px;
+  }
+
+  .card,
+  .focus-card {
+    padding: 20px;
+  }
+
+  .goal-card {
+    padding: 12px;
+  }
+
+  /* Ensure goal grid textareas don't cut off */
+  .goal-grid {
+    gap: 10px;
+  }
+
+  .goal-grid textarea {
+    min-height: 60px;
   }
 }
 @media (max-width: 1024px) {
