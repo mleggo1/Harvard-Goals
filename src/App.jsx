@@ -421,6 +421,23 @@ export default function App() {
     }));
   }
 
+  function getStatusFromProgress(progress) {
+    if (progress === 0) return "Not started";
+    if (progress === 100) return "Done";
+    return "In progress";
+  }
+
+  function getProgressFromStatus(status, currentProgress) {
+    if (status === "Not started") return 0;
+    if (status === "Done") return 100;
+    if (status === "In progress") {
+      // If currently 0 or 100, set to 50, otherwise keep current
+      return currentProgress === 0 || currentProgress === 100 ? 50 : currentProgress;
+    }
+    // For "Paused", keep current progress
+    return currentProgress;
+  }
+
   function handleGoalDeadlineChange(goalId, deadlineValue) {
     if (!deadlineValue) {
       updateGoal(goalId, { deadline: "" });
@@ -667,7 +684,7 @@ function applyTimeframe(value, options = {}) {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("Goals Blueprint", marginX, cursorY);
+    doc.text(ownerName ? `${ownerName}'s Life Blueprint` : "Your Life Blueprint", marginX, cursorY);
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
@@ -763,10 +780,9 @@ function applyTimeframe(value, options = {}) {
         <header className="app-hero">
           <div>
             <p className="eyebrow">Harvard Goals Method</p>
-            <h1>{ownerName ? `${ownerName}'s Goals Blueprint` : "Goals Blueprint"}</h1>
+            <h1>{ownerName ? `🚀 ${ownerName}'s Life Blueprint` : "🚀 Your Life Blueprint"}</h1>
             <p className="hero-subhead">
-              Design a life you can see, feel and print. Capture bold goals, lock a mantra,
-              ritualise execution, then export or share with your accountability crew.
+              Turn your biggest dreams into a clear plan. Write down your goals, set your focus, take action every day, and share your progress with people who support you.
             </p>
             <div className="planner-owner">
               <label>Your name</label>
@@ -811,60 +827,66 @@ function applyTimeframe(value, options = {}) {
           </div>
         </header>
 
-        <section className="focus-grid">
-          <article className="focus-card">
-            <div className="card-title">
-              <span className="icon">✨</span>
-              <span>Focus word</span>
-            </div>
-            <p>Choose the single word that will govern your decisions this season.</p>
-            <input
-              type="text"
-              value={focusWord}
-              onChange={(e) => updatePlannerField("focusWord", e.target.value)}
-              placeholder="Example: Momentum, Clarity, Action, Growth"
-            />
-          </article>
-          <article className="focus-card">
-            <div className="card-title">
-              <span className="icon">🧭</span>
-              <span>Weekly mantra</span>
-            </div>
-            <p>Write a short mantra you'll read each Monday and before big meetings.</p>
-            <textarea
-              value={weeklyMantra}
-              onChange={(e) => {
-                updatePlannerField("weeklyMantra", e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              onInput={(e) => {
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              placeholder="Example: I do the hard thing first, before distractions set in. Progress over perfection, action over planning."
-            />
-          </article>
-          <article className="focus-card">
-            <div className="card-title">
-              <span className="icon">🎉</span>
-              <span>Celebration plan</span>
-            </div>
-            <p>Anchor in a reward so your brain knows progress is worth celebrating.</p>
-            <textarea
-              value={celebrationPlan}
-              onChange={(e) => {
-                updatePlannerField("celebrationPlan", e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              onInput={(e) => {
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
-              }}
-              placeholder="Example: Weekend getaway when I hit my next milestone. Or a special dinner with loved ones when I complete my quarterly goal."
-            />
-          </article>
+        <section className="focus-section">
+          <div className="focus-section-header">
+            <h2 className="focus-section-title">⚡ Set Your Foundation</h2>
+            <p className="focus-section-subtitle">Define what drives you. These three anchors will guide every decision and keep you aligned with your vision.</p>
+          </div>
+          <div className="focus-grid">
+            <article className="focus-card">
+              <div className="card-title">
+                <span className="icon">✨</span>
+                <span>Focus word</span>
+              </div>
+              <p>Choose the single word that will govern your decisions this season.</p>
+              <input
+                type="text"
+                value={focusWord}
+                onChange={(e) => updatePlannerField("focusWord", e.target.value)}
+                placeholder="Example: Momentum, Clarity, Action, Growth"
+              />
+            </article>
+            <article className="focus-card">
+              <div className="card-title">
+                <span className="icon">🧭</span>
+                <span>Weekly mantra</span>
+              </div>
+              <p>Write a short mantra you'll read each Monday and before big meetings.</p>
+              <textarea
+                value={weeklyMantra}
+                onChange={(e) => {
+                  updatePlannerField("weeklyMantra", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                placeholder="Example: I do the hard thing first, before distractions set in. Progress over perfection, action over planning."
+              />
+            </article>
+            <article className="focus-card">
+              <div className="card-title">
+                <span className="icon">🎉</span>
+                <span>Celebration plan</span>
+              </div>
+              <p>Anchor in a reward so your brain knows progress is worth celebrating.</p>
+              <textarea
+                value={celebrationPlan}
+                onChange={(e) => {
+                  updatePlannerField("celebrationPlan", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                placeholder="Example: Weekend getaway when I hit my next milestone. Or a special dinner with loved ones when I complete my quarterly goal."
+              />
+            </article>
+          </div>
         </section>
 
         <main className="planner-grid">
@@ -1086,18 +1108,21 @@ function applyTimeframe(value, options = {}) {
                                 </div>
                               </div>
                             ) : (
-                              <select
-                                className="goal-chip-select"
-                                value={goal.timeframe}
-                                onChange={(e) => handleGoalTimeframeChange(goal.id, e.target.value)}
-                              >
-                                {TIMEFRAMES.map((tf) => (
-                                  <option key={tf.id} value={tf.id}>
-                                    {tf.label}
-                                  </option>
-                                ))}
-                                <option value="custom">Custom days</option>
-                              </select>
+                              <div className="goal-timeframe-display">
+                                <label className="goal-timeframe-label">GOAL</label>
+                                <select
+                                  className="goal-chip-select"
+                                  value={goal.timeframe}
+                                  onChange={(e) => handleGoalTimeframeChange(goal.id, e.target.value)}
+                                >
+                                  {TIMEFRAMES.map((tf) => (
+                                    <option key={tf.id} value={tf.id}>
+                                      {tf.label}
+                                    </option>
+                                  ))}
+                                  <option value="custom">Custom days</option>
+                                </select>
+                              </div>
                             )}
                             <div className="deadline-display">
                               <label className="deadline-label">Deadline</label>
@@ -1159,7 +1184,11 @@ function applyTimeframe(value, options = {}) {
                           <label>Status</label>
                           <select
                             value={goal.status}
-                            onChange={(e) => updateGoal(goal.id, { status: e.target.value })}
+                            onChange={(e) => {
+                              const newStatus = e.target.value;
+                              const newProgress = getProgressFromStatus(newStatus, goal.progress);
+                              updateGoal(goal.id, { status: newStatus, progress: newProgress });
+                            }}
                           >
                             {STATUS_OPTIONS.map((status) => (
                               <option key={status}>{status}</option>
@@ -1180,16 +1209,18 @@ function applyTimeframe(value, options = {}) {
                           </select>
                         </div>
                         <div className="goal-row progress-row">
-                          <label>Momentum</label>
+                          <label>% Complete</label>
                           <div className="progress-wrap">
                             <input
                               type="range"
                               min={0}
                               max={100}
                               value={goal.progress}
-                              onChange={(e) =>
-                                updateGoal(goal.id, { progress: Number(e.target.value) })
-                              }
+                              onChange={(e) => {
+                                const newProgress = Number(e.target.value);
+                                const newStatus = getStatusFromProgress(newProgress);
+                                updateGoal(goal.id, { progress: newProgress, status: newStatus });
+                              }}
                             />
                             <span>{goal.progress}%</span>
                           </div>
@@ -1258,7 +1289,7 @@ function applyTimeframe(value, options = {}) {
                   <strong>{doneGoals}</strong>
                 </div>
                 <div>
-                  <p>Avg momentum</p>
+                  <p>Avg % Complete</p>
                   <strong>{averageProgress}%</strong>
                 </div>
               </div>
