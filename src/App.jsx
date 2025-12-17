@@ -836,7 +836,7 @@ function applyTimeframe(value, options = {}) {
             <article className="focus-card">
               <div className="card-title">
                 <span className="icon">✨</span>
-                <span>Focus word</span>
+                <span>FOCUS WORD</span>
               </div>
               <p>Choose the single word that will govern your decisions this season.</p>
               <input
@@ -849,7 +849,7 @@ function applyTimeframe(value, options = {}) {
             <article className="focus-card">
               <div className="card-title">
                 <span className="icon">🧭</span>
-                <span>Weekly mantra</span>
+                <span>WEEKLY MANTRA</span>
               </div>
               <p>Write a short mantra you'll read each Monday and before big meetings.</p>
               <textarea
@@ -869,7 +869,7 @@ function applyTimeframe(value, options = {}) {
             <article className="focus-card">
               <div className="card-title">
                 <span className="icon">🎉</span>
-                <span>Celebration plan</span>
+                <span>CELEBRATION PLAN</span>
               </div>
               <p>Anchor in a reward so your brain knows progress is worth celebrating.</p>
               <textarea
@@ -895,7 +895,7 @@ function applyTimeframe(value, options = {}) {
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🔭</span>
-                  <span>10+ year vision</span>
+                  <span>10+ YEAR VISION</span>
                 </div>
                 <p>Describe the life you see when everything compounds in your favor.</p>
               </header>
@@ -922,7 +922,7 @@ function applyTimeframe(value, options = {}) {
                 <div>
                   <div className="card-title">
                     <span className="icon">📝</span>
-                    <span>Add a goal</span>
+                    <span>ADD A GOAL</span>
                   </div>
                   <p className="card-subtitle-inspire">What specific outcome will make your vision a reality?</p>
                 </div>
@@ -1053,7 +1053,7 @@ function applyTimeframe(value, options = {}) {
                 <div>
                   <div className="card-title">
                     <span className="icon">📚</span>
-                    <span>Goals board</span>
+                    <span>GOALS BOARD</span>
                   </div>
                   <p>Sort by timeframe, update progress sliders and re-read your why weekly.</p>
                 </div>
@@ -1330,7 +1330,7 @@ function applyTimeframe(value, options = {}) {
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🔥</span>
-                  <span>Big 3 this year</span>
+                  <span>Big 3 Goals This Year</span>
                 </div>
                 <p>These get protected time every week. Nothing jumps the queue.</p>
               </header>

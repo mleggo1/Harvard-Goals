@@ -413,7 +413,9 @@ body::before {
 
 .focus-card .card-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   margin-bottom: 4px;
 }
 
@@ -514,7 +516,9 @@ body::before {
 
 .card-add-goal .card-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .card-add-goal .icon {
@@ -528,7 +532,9 @@ body::before {
 
 .card-goal-board .card-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .card-goal-board .icon {
@@ -572,6 +578,12 @@ body::before {
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
+}
+
+.card .card-title {
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .card-title .icon {
@@ -634,6 +646,22 @@ body::before {
   color: var(--text-primary);
   font-size: 15px;
   font-family: inherit;
+}
+
+.field input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.8;
+  filter: invert(1) brightness(1.5);
+}
+
+[data-theme="night"] .field input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  filter: invert(1) brightness(2);
+}
+
+[data-theme="day"] .field input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.7;
+  filter: invert(0) brightness(0.8);
 }
 
 .field select {
@@ -1096,7 +1124,12 @@ body::before {
 
 .deadline-icon {
   font-size: 18px;
-  filter: drop-shadow(0 2px 4px rgba(56, 189, 248, 0.4));
+  opacity: 1;
+  filter: brightness(1.2) drop-shadow(0 2px 4px rgba(56, 189, 248, 0.6));
+}
+
+[data-theme="night"] .deadline-icon {
+  filter: brightness(1.5) drop-shadow(0 2px 6px rgba(56, 189, 248, 0.8));
 }
 
 .deadline-input {
@@ -1125,8 +1158,13 @@ body::before {
 
 .deadline-input-visible::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0.6;
-  filter: invert(1);
+  opacity: 0.8;
+  filter: invert(1) brightness(1.5);
+}
+
+[data-theme="night"] .deadline-input-visible::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  filter: invert(1) brightness(2);
 }
 
 .deadline-input-visible:focus {
