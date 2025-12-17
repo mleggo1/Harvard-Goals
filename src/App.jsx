@@ -336,6 +336,23 @@ export default function App() {
     }
   }, [planner]);
 
+  // Auto-resize all textareas on mount and when content changes
+  useEffect(() => {
+    const resizeTextareas = () => {
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach((textarea) => {
+        textarea.style.height = "auto";
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      });
+    };
+    
+    resizeTextareas();
+    // Also resize after a short delay to ensure content is rendered
+    const timeout = setTimeout(resizeTextareas, 100);
+    
+    return () => clearTimeout(timeout);
+  }, [planner.vision10, planner.notes, planner.focusWord, planner.weeklyMantra, planner.celebrationPlan, planner.goals]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme === "day" ? "day" : "night";
   }, [theme]);
@@ -1040,6 +1057,7 @@ function applyTimeframe(value, options = {}) {
                   e.target.style.height = `${e.target.scrollHeight}px`;
                 }}
                 placeholder="Example: Weekend getaway when I hit my next milestone. Or a special dinner with loved ones when I complete my quarterly goal."
+                rows={1}
               />
             </article>
           </div>
@@ -1059,16 +1077,34 @@ function applyTimeframe(value, options = {}) {
                 <label>Your vivid description</label>
                 <textarea
                   value={vision10}
-                  onChange={(e) => updatePlannerField("vision10", e.target.value)}
+                  onChange={(e) => {
+                    updatePlannerField("vision10", e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onInput={(e) => {
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
                   placeholder="It's 2035. I'm..."
+                  rows={1}
                 />
               </div>
               <div className="field">
                 <label>Why it matters</label>
                 <textarea
                   value={notes}
-                  onChange={(e) => updatePlannerField("notes", e.target.value)}
+                  onChange={(e) => {
+                    updatePlannerField("notes", e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onInput={(e) => {
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
                   placeholder="This future matters because..."
+                  rows={1}
                 />
               </div>
             </article>
@@ -1386,24 +1422,51 @@ function applyTimeframe(value, options = {}) {
                             <label>Why</label>
                             <textarea
                               value={goal.why}
-                              onChange={(e) => updateGoal(goal.id, { why: e.target.value })}
+                              onChange={(e) => {
+                                updateGoal(goal.id, { why: e.target.value });
+                                e.target.style.height = "auto";
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                              }}
+                              onInput={(e) => {
+                                e.target.style.height = "auto";
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                              }}
                               placeholder="Remind yourself why this matters."
+                              rows={1}
                             />
                           </div>
                           <div>
                             <label>Next step</label>
                             <textarea
                               value={goal.nextStep}
-                              onChange={(e) => updateGoal(goal.id, { nextStep: e.target.value })}
+                              onChange={(e) => {
+                                updateGoal(goal.id, { nextStep: e.target.value });
+                                e.target.style.height = "auto";
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                              }}
+                              onInput={(e) => {
+                                e.target.style.height = "auto";
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                              }}
                               placeholder="Block a meeting? Call the mentor?"
+                              rows={1}
                             />
                           </div>
                           <div>
                             <label>Reward</label>
                             <textarea
                               value={goal.reward}
-                              onChange={(e) => updateGoal(goal.id, { reward: e.target.value })}
+                              onChange={(e) => {
+                                updateGoal(goal.id, { reward: e.target.value });
+                                e.target.style.height = "auto";
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                              }}
+                              onInput={(e) => {
+                                e.target.style.height = "auto";
+                                e.target.style.height = `${e.target.scrollHeight}px`;
+                              }}
                               placeholder="What will you do when it's done?"
+                              rows={1}
                             />
                           </div>
                         </div>

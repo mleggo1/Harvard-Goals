@@ -538,12 +538,13 @@ body::before {
 }
 
 .focus-card textarea {
-  resize: vertical;
+  resize: none;
   min-height: 60px;
-  overflow-y: auto;
+  overflow-y: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+  max-height: none;
 }
 
 .card {
@@ -870,7 +871,11 @@ body::before {
 
 .field textarea {
   min-height: 110px;
-  resize: vertical;
+  resize: none;
+  overflow-y: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .field-grid {
@@ -1598,7 +1603,11 @@ body::before {
   padding: 12px 14px;
   font-size: 14px;
   font-family: inherit;
-  resize: vertical;
+  resize: none;
+  overflow-y: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
   box-sizing: border-box;
 }
 
@@ -1939,6 +1948,7 @@ body::before {
   .focus-card textarea,
   .focus-card input,
   .card textarea,
+  .field textarea,
   .goal-grid textarea {
     height: auto !important;
     max-height: none !important;
@@ -1948,6 +1958,19 @@ body::before {
     white-space: pre-wrap !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
+    min-height: auto !important;
+    resize: none !important;
+    display: block !important;
+  }
+
+  /* Ensure focus cards show all content in print */
+  .focus-card {
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  .focus-card textarea {
+    height: auto !important;
     min-height: auto !important;
   }
 
@@ -1978,9 +2001,9 @@ body::before {
   .focus-card {
     page-break-after: auto;
     margin-bottom: 8px;
-  }
+}
 
-  .card {
+.card {
     page-break-after: auto;
     page-break-before: auto;
     margin-bottom: 12px;
