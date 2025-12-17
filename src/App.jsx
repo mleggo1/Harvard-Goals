@@ -63,114 +63,114 @@ const DEFAULT_STATE = {
 
 const GOAL_TEMPLATES = [
   {
-    id: "health-85kg-strong",
+    id: "health-ideal-body",
     area: "Health & Energy",
-    text: "Build and maintain an 85kg lean, muscular, strong, high-energy body.",
+    text: "Build a lean, strong body that gives me energy for everything else I want to do.",
     timeframe: "1-year",
     priority: 5,
-    why: "Peak strength and energy unlock every other area of life.",
-    nextStep: "Book UBX sessions plus strength, sauna and ice bath blocks into the calendar.",
-    reward: "Schedule a surf performance session once I hit 6 straight disciplined weeks."
+    why: "When I feel strong and energetic, everything else in life gets easier.",
+    nextStep: "Block out regular training times in my calendar and stick to them.",
+    reward: "Buy myself new gear or book a session after 6 weeks of consistency."
   },
   {
-    id: "health-surf-fit",
+    id: "health-stay-fit",
     area: "Health & Energy",
-    text: "Stay surf-fit year-round — flexible, strong, and injury-free.",
+    text: "Stay flexible, strong, and injury-free so I can move well every day.",
     timeframe: "90-day",
     priority: 5,
-    why: "Being surf-ready at any time keeps me playful, confident and pain-free.",
-    nextStep: "Lock three mobility + conditioning circuits each week focused on shoulders and hips.",
-    reward: "Book a new board or fin setup after 12 consistent weeks."
+    why: "Being able to move without pain means I can show up fully for life.",
+    nextStep: "Commit to three mobility and strength sessions each week.",
+    reward: "Upgrade my equipment after 12 weeks of showing up."
   },
   {
-    id: "health-150-sessions",
+    id: "health-training-sessions",
     area: "Health & Energy",
-    text: "Complete 150+ quality training sessions this year.",
+    text: "Complete XX quality training sessions this year and track my progress.",
     timeframe: "1-year",
     priority: 4,
-    why: "Consistency compounds fitness, mood, recovery and resilience.",
-    nextStep: "Create a simple tracker and schedule the first 10 weeks of UBX/strength blocks.",
-    reward: "Plan a recovery weekend away once I cross session number 75."
+    why: "Showing up consistently builds momentum that compounds over time.",
+    nextStep: "Set up a simple tracker and plan my first 10 weeks of sessions.",
+    reward: "Take a recovery weekend once I hit the halfway point."
   },
   {
-    id: "finance-passive-250k",
+    id: "finance-passive-income",
     area: "Wealth & Investing",
-    text: "Build $250,000+ per year in passive income.",
+    text: "Build $XX per year in passive income.",
     timeframe: "5-year",
     priority: 5,
-    why: "Passive income buys total freedom for travel, surf and family experiences.",
-    nextStep: "Model the income stack (ETFs, villas, crypto) and set quarterly acquisition targets.",
-    reward: "Celebrate each new $50k milestone with a special dinner with Cathryn."
+    why: "Passive income creates total freedom for travel, experiences and family time.",
+    nextStep: "Model my income strategy and set quarterly acquisition targets.",
+    reward: "Celebrate each major milestone with a special experience or dinner."
   },
   {
     id: "finance-automate-investing",
     area: "Wealth & Investing",
-    text: "Fully automate my investment strategy across ETFs, Bitcoin and property by year-end.",
+    text: "Fully automate my investment strategy across multiple asset classes by year-end.",
     timeframe: "1-year",
     priority: 4,
     why: "Automation removes friction so compounding works without decision fatigue.",
-    nextStep: "Document the playbook and set up recurring transfers plus portfolio reviews.",
-    reward: "Take a long weekend in Bali when the automation stack runs for 90 days straight."
+    nextStep: "Document my playbook and set up recurring transfers plus portfolio reviews.",
+    reward: "Take a long weekend getaway when the automation stack runs for 90 days straight."
   },
   {
-    id: "finance-bali-property",
+    id: "finance-investment-property",
     area: "Wealth & Investing",
-    text: "Acquire another Bali property near Uluwatu with 15%+ projected ROI.",
+    text: "Acquire an investment property with XX%+ projected ROI.",
     timeframe: "1-year",
     priority: 4,
-    why: "Adding a high-performing villa accelerates passive income and lifestyle leverage.",
+    why: "Adding a high-performing asset accelerates passive income and builds wealth.",
     nextStep: "Shortlist properties, run ROI models, and schedule site inspections.",
-    reward: "Host a small launch party at the villa once the deal is closed."
+    reward: "Host a small celebration once the deal is closed."
   },
   {
-    id: "family-father-trips",
+    id: "family-quality-time",
     area: "Family & Relationships",
-    text: "Take Harrison on four meaningful father–son trips per year.",
+    text: "Plan four meaningful family trips or adventures per year.",
     timeframe: "1-year",
     priority: 5,
-    why: "Adventure time together cements our bond and models the life I want for him.",
-    nextStep: "List four trip ideas, book the first dates, and put them on the shared calendar.",
-    reward: "Create a photo book after each trip to capture the stories."
+    why: "Adventure time together strengthens bonds and creates lasting memories.",
+    nextStep: "List trip ideas, book the first dates, and add them to the shared calendar.",
+    reward: "Create a photo book or memory collection after each trip."
   },
   {
     id: "family-date-night",
     area: "Family & Relationships",
-    text: "Have a dedicated weekly date night with Cathryn.",
+    text: "Have a dedicated weekly date night with my partner.",
     timeframe: "90-day",
     priority: 4,
     why: "Protected connection time keeps our relationship playful, aligned and grateful.",
-    nextStep: "Block Thursday nights as sacred, book babysitting, and plan the first month of ideas.",
+    nextStep: "Block one night per week as sacred, arrange childcare if needed, and plan the first month.",
     reward: "Book a surprise weekend away after eight straight weeks."
   },
   {
     id: "family-financial-education",
     area: "Family & Relationships",
-    text: "Create a structured financial education plan for Harrison.",
+    text: "Create a structured financial education plan for my children.",
     timeframe: "1-year",
     priority: 4,
-    why: "Passing on money wisdom early sets him up for freedom and stewardship.",
-    nextStep: "Outline the 12 lessons, gather resources, and schedule a monthly money lab.",
-    reward: "Buy him a meaningful book or experience once the first module is complete."
+    why: "Passing on money wisdom early sets them up for freedom and financial stewardship.",
+    nextStep: "Outline the lessons, gather resources, and schedule regular money conversations.",
+    reward: "Buy them a meaningful book or experience once the first module is complete."
   },
   {
-    id: "lifestyle-five-iconic-waves",
+    id: "lifestyle-adventure-goals",
     area: "Lifestyle & Freedom",
-    text: "Surf five iconic waves this year: Uluwatu, Bingin, Padang Right, Impossibles, Nusa Dua.",
+    text: "Complete XX bucket-list adventures or experiences this year.",
     timeframe: "1-year",
     priority: 4,
-    why: "Chasing world-class waves keeps me inspired, humble and in flow.",
-    nextStep: "Plan the travel windows, secure boards, and lock in surf coaching for each location.",
-    reward: "Commission a custom board art piece after the fifth wave."
+    why: "Chasing meaningful experiences keeps me inspired, humble and in flow.",
+    nextStep: "List the adventures, plan travel windows, and book the first one.",
+    reward: "Commission a custom memento or art piece after completing the goal."
   },
   {
-    id: "lifestyle-bali-work-surf",
+    id: "lifestyle-work-travel",
     area: "Lifestyle & Freedom",
-    text: "Take two 10-day Bali work-and-surf trips each year.",
+    text: "Take XX work-and-travel trips each year that combine productivity with adventure.",
     timeframe: "1-year",
     priority: 4,
-    why: "These trips combine income, creativity and sunshine—exactly how I want life to feel.",
-    nextStep: "Book January and July villa dates plus flights, and map the work sprints.",
-    reward: "Treat myself to a spa + fine-dining night on each trip."
+    why: "These trips combine income, creativity and new experiences—exactly how I want life to feel.",
+    nextStep: "Book dates, secure accommodation, and map out work sprints.",
+    reward: "Treat myself to a special experience on each trip."
   },
   {
     id: "lifestyle-trip-systems",
@@ -178,9 +178,9 @@ const GOAL_TEMPLATES = [
     text: "Plan and book major trips at least three months ahead to optimise price and availability.",
     timeframe: "90-day",
     priority: 3,
-    why: "Planning early keeps cash flow clean and guarantees the best villas and waves.",
-    nextStep: "Create a rolling planning board with deadlines for flights, villas and surf gear.",
-    reward: "Upgrade one flight to business class once the system runs for two full cycles."
+    why: "Planning early keeps cash flow clean and guarantees the best options.",
+    nextStep: "Create a rolling planning system with deadlines for flights and accommodation.",
+    reward: "Upgrade one experience to premium once the system runs for two full cycles."
   }
 ];
 
@@ -240,6 +240,17 @@ function addDays(baseDate, days) {
 
 function formatDateInput(date) {
   return date.toISOString().split("T")[0];
+}
+
+function calculateDaysRemaining(deadline) {
+  if (!deadline) return null;
+  const target = new Date(deadline);
+  if (Number.isNaN(target.getTime())) return null;
+  target.setHours(0, 0, 0, 0);
+  const today = startOfToday();
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / MS_PER_DAY);
+  return diffDays;
 }
 
 function getDayCountForTimeframe(value, customDaysOverride) {
@@ -306,6 +317,34 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme === "day" ? "day" : "night";
   }, [theme]);
+
+  // Auto-resize goal title textareas when goals change
+  useEffect(() => {
+    const textareas = document.querySelectorAll('.goal-title-input');
+    textareas.forEach((textarea) => {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    });
+  }, [goals]);
+
+  // Auto-resize focus card textareas to match content
+  useEffect(() => {
+    const resizeTextareas = () => {
+      const focusCards = document.querySelectorAll(".focus-card");
+      focusCards.forEach((card) => {
+        const textarea = card.querySelector("textarea");
+        if (textarea) {
+          textarea.style.height = "auto";
+          textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+      });
+    };
+
+    resizeTextareas();
+    // Also resize when values change
+    const timer = setTimeout(resizeTextareas, 100);
+    return () => clearTimeout(timer);
+  }, [weeklyMantra, celebrationPlan]);
 
   const filteredGoals = useMemo(() => {
     if (filterTimeframe === "all") return goals;
@@ -380,6 +419,64 @@ export default function App() {
       ...prev,
       goals: prev.goals.map((goal) => (goal.id === id ? { ...goal, ...patch } : goal))
     }));
+  }
+
+  function handleGoalDeadlineChange(goalId, deadlineValue) {
+    if (!deadlineValue) {
+      updateGoal(goalId, { deadline: "" });
+      return;
+    }
+    const target = new Date(deadlineValue);
+    if (Number.isNaN(target.getTime())) return;
+    target.setHours(0, 0, 0, 0);
+    const today = startOfToday();
+    const diffDays = Math.max(
+      0,
+      Math.round((target.getTime() - today.getTime()) / MS_PER_DAY)
+    );
+    const preset = Object.entries(TIMEFRAME_DAY_MAP).find(([, days]) => days === diffDays);
+    let newTimeframe;
+    if (preset) {
+      newTimeframe = preset[0];
+    } else {
+      newTimeframe = `${CUSTOM_TIMEFRAME_PREFIX}${diffDays}`;
+    }
+    updateGoal(goalId, { deadline: deadlineValue, timeframe: newTimeframe });
+  }
+
+  function handleGoalTimeframeChange(goalId, timeframeValue) {
+    if (!timeframeValue) return;
+    if (timeframeValue === "custom") {
+      const currentGoal = goals.find((g) => g.id === goalId);
+      if (currentGoal && currentGoal.deadline) {
+        const target = new Date(currentGoal.deadline);
+        if (!Number.isNaN(target.getTime())) {
+          target.setHours(0, 0, 0, 0);
+          const today = startOfToday();
+          const diffDays = Math.max(
+            0,
+            Math.round((target.getTime() - today.getTime()) / MS_PER_DAY)
+          );
+          const customValue = `${CUSTOM_TIMEFRAME_PREFIX}${diffDays}`;
+          updateGoal(goalId, { timeframe: customValue });
+          return;
+        }
+      }
+      const defaultCustom = `${CUSTOM_TIMEFRAME_PREFIX}${DEFAULT_CUSTOM_TIMEFRAME_DAYS}`;
+      const dayCount = Number(DEFAULT_CUSTOM_TIMEFRAME_DAYS);
+      const futureDate = addDays(startOfToday(), dayCount);
+      const formattedDeadline = formatDateInput(futureDate);
+      updateGoal(goalId, { timeframe: defaultCustom, deadline: formattedDeadline });
+      return;
+    }
+    const dayCount = getDayCountForTimeframe(timeframeValue);
+    if (!dayCount) {
+      updateGoal(goalId, { timeframe: timeframeValue });
+      return;
+    }
+    const futureDate = addDays(startOfToday(), dayCount);
+    const formattedDeadline = formatDateInput(futureDate);
+    updateGoal(goalId, { timeframe: timeframeValue, deadline: formattedDeadline });
   }
 
   function handleTemplateChange(event) {
@@ -558,7 +655,7 @@ function applyTimeframe(value, options = {}) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "harvard-goals-planner.json";
+    anchor.download = "goals-blueprint.json";
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -570,7 +667,7 @@ function applyTimeframe(value, options = {}) {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("Harvard Goals Planner", marginX, cursorY);
+    doc.text("Goals Blueprint", marginX, cursorY);
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
@@ -639,7 +736,7 @@ function applyTimeframe(value, options = {}) {
       cursorY += 10;
     });
 
-    doc.save("harvard-goals-planner.pdf");
+    doc.save("goals-blueprint.pdf");
   }
 
   function formatDeadline(dateString) {
@@ -666,7 +763,7 @@ function applyTimeframe(value, options = {}) {
         <header className="app-hero">
           <div>
             <p className="eyebrow">Harvard Goals Method</p>
-            <h1>{ownerName ? `${ownerName}'s Goals Planner` : "Goals Planner"}</h1>
+            <h1>{ownerName ? `${ownerName}'s Goals Blueprint` : "Goals Blueprint"}</h1>
             <p className="hero-subhead">
               Design a life you can see, feel and print. Capture bold goals, lock a mantra,
               ritualise execution, then export or share with your accountability crew.
@@ -725,7 +822,7 @@ function applyTimeframe(value, options = {}) {
               type="text"
               value={focusWord}
               onChange={(e) => updatePlannerField("focusWord", e.target.value)}
-              placeholder="Example: Relentless"
+              placeholder="Example: Momentum, Clarity, Action, Growth"
             />
           </article>
           <article className="focus-card">
@@ -736,8 +833,16 @@ function applyTimeframe(value, options = {}) {
             <p>Write a short mantra you'll read each Monday and before big meetings.</p>
             <textarea
               value={weeklyMantra}
-              onChange={(e) => updatePlannerField("weeklyMantra", e.target.value)}
-              placeholder="I do the courageous thing first, before the world wakes up."
+              onChange={(e) => {
+                updatePlannerField("weeklyMantra", e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              onInput={(e) => {
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              placeholder="Example: I do the hard thing first, before distractions set in. Progress over perfection, action over planning."
             />
           </article>
           <article className="focus-card">
@@ -748,8 +853,16 @@ function applyTimeframe(value, options = {}) {
             <p>Anchor in a reward so your brain knows progress is worth celebrating.</p>
             <textarea
               value={celebrationPlan}
-              onChange={(e) => updatePlannerField("celebrationPlan", e.target.value)}
-              placeholder="Weekend surf trip when I close the next consulting client."
+              onChange={(e) => {
+                updatePlannerField("celebrationPlan", e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              onInput={(e) => {
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              placeholder="Example: Weekend getaway when I hit my next milestone. Or a special dinner with loved ones when I complete my quarterly goal."
             />
           </article>
         </section>
@@ -782,7 +895,7 @@ function applyTimeframe(value, options = {}) {
               </div>
             </article>
 
-            <article className="card">
+            <article className="card card-add-goal">
               <header className="card-header">
                 <div>
                   <div className="card-title">
@@ -846,7 +959,7 @@ function applyTimeframe(value, options = {}) {
                   </select>
                 </div>
                 <div className="field">
-                  <label>Priority (1-5)</label>
+                  <label>Priority (1-5, 5 = highest)</label>
                   <input
                     type="number"
                     min={1}
@@ -911,12 +1024,12 @@ function applyTimeframe(value, options = {}) {
               </div>
             </article>
 
-            <article className="card">
+            <article className="card card-goal-board">
               <header className="card-header">
                 <div>
                   <div className="card-title">
                     <span className="icon">📚</span>
-                    <span>Goal board</span>
+                    <span>Goals board</span>
                   </div>
                   <p>Sort by timeframe, update progress sliders and re-read your why weekly.</p>
                 </div>
@@ -944,13 +1057,99 @@ function applyTimeframe(value, options = {}) {
                   {filteredGoals.map((goal) => (
                     <article key={goal.id} className="goal-card">
                       <div className="goal-card__header">
-                        <div>
-                          <p className="goal-chip">{formatTimeframeLabel(goal.timeframe)}</p>
-                          <h3>{goal.text}</h3>
-                        </div>
-                        <div className="goal-meta">
-                          <span className="goal-area">{goal.area}</span>
-                          <span className="goal-priority">⭐ {goal.priority}</span>
+                        <div className="goal-header-main">
+                          <div className="goal-header-top">
+                            {isCustomTimeframeValue(goal.timeframe) ? (
+                              <div className="custom-days-display">
+                                <label className="custom-days-label">GOAL</label>
+                                <div className="custom-days-content">
+                                  <input
+                                    type="number"
+                                    className="custom-days-input"
+                                    min={1}
+                                    value={getCustomDayCount(goal.timeframe)}
+                                    onChange={(e) => {
+                                      const days = e.target.value;
+                                      if (days && Number(days) > 0) {
+                                        const customValue = `${CUSTOM_TIMEFRAME_PREFIX}${days}`;
+                                        const dayCount = Number(days);
+                                        const futureDate = addDays(startOfToday(), dayCount);
+                                        const formattedDeadline = formatDateInput(futureDate);
+                                        updateGoal(goal.id, { timeframe: customValue, deadline: formattedDeadline });
+                                      }
+                                    }}
+                                    placeholder="Days"
+                                  />
+                                  <span className="custom-days-unit">days</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <select
+                                className="goal-chip-select"
+                                value={goal.timeframe}
+                                onChange={(e) => handleGoalTimeframeChange(goal.id, e.target.value)}
+                              >
+                                {TIMEFRAMES.map((tf) => (
+                                  <option key={tf.id} value={tf.id}>
+                                    {tf.label}
+                                  </option>
+                                ))}
+                                <option value="custom">Custom days</option>
+                              </select>
+                            )}
+                            <div className="deadline-display">
+                              <label className="deadline-label">Deadline</label>
+                              <div className="deadline-content">
+                                <span className="deadline-icon">📅</span>
+                                <input
+                                  type="date"
+                                  className="deadline-input-visible"
+                                  value={goal.deadline || ""}
+                                  onChange={(e) => handleGoalDeadlineChange(goal.id, e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            {(() => {
+                              const daysRemaining = calculateDaysRemaining(goal.deadline);
+                              if (daysRemaining === null) return null;
+                              const isOverdue = daysRemaining < 0;
+                              return (
+                                <div className={`days-remaining-display ${isOverdue ? 'overdue' : ''}`}>
+                                  <label className="days-remaining-label">Days Remaining</label>
+                                  <div className="days-remaining-content">
+                                    <span className={`days-remaining-number ${isOverdue ? 'overdue' : ''}`}>
+                                      {isOverdue ? Math.abs(daysRemaining) : daysRemaining}
+                                    </span>
+                                    <span className="days-remaining-unit">
+                                      {isOverdue ? 'overdue' : daysRemaining === 1 ? 'day' : 'days'}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          <textarea
+                            className="goal-title-input"
+                            value={goal.text}
+                            onChange={(e) => {
+                              updateGoal(goal.id, { text: e.target.value });
+                              // Auto-resize on change
+                              const target = e.target;
+                              target.style.height = 'auto';
+                              target.style.height = target.scrollHeight + 'px';
+                            }}
+                            onInput={(e) => {
+                              // Auto-resize on input
+                              const target = e.target;
+                              target.style.height = 'auto';
+                              target.style.height = target.scrollHeight + 'px';
+                            }}
+                            placeholder="Enter your goal..."
+                            rows={1}
+                          />
+                          <div className="goal-meta-inline">
+                            <span className="goal-area">{goal.area}</span>
+                          </div>
                         </div>
                       </div>
                       <div className="goal-card__body">
@@ -963,6 +1162,19 @@ function applyTimeframe(value, options = {}) {
                             {STATUS_OPTIONS.map((status) => (
                               <option key={status}>{status}</option>
                             ))}
+                          </select>
+                        </div>
+                        <div className="goal-row">
+                          <label>Priority (1-5, 5 = highest)</label>
+                          <select
+                            value={goal.priority}
+                            onChange={(e) => updateGoal(goal.id, { priority: Number(e.target.value) })}
+                          >
+                            <option value={1}>1 - Lowest</option>
+                            <option value={2}>2 - Low</option>
+                            <option value={3}>3 - Medium</option>
+                            <option value={4}>4 - High</option>
+                            <option value={5}>5 - Highest</option>
                           </select>
                         </div>
                         <div className="goal-row progress-row">
@@ -1007,7 +1219,6 @@ function applyTimeframe(value, options = {}) {
                           </div>
                         </div>
                         <div className="goal-footer">
-                          <span>Deadline: {formatDeadline(goal.deadline)}</span>
                           <div className="goal-footer__actions">
                             <button className="btn outline" onClick={() => deleteGoal(goal.id)}>
                               ✕ Remove
@@ -1150,7 +1361,7 @@ function applyTimeframe(value, options = {}) {
                 </div>
               </header>
               <ul className="prompt-list">
-                <li>Which 5-year goal gets a decisive action this week?</li>
+                <li>Which goal gets a decisive action this week?</li>
                 <li>Does my calendar reflect my Big 3 priorities?</li>
                 <li>What will I say no to so these commitments win?</li>
               </ul>
