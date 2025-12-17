@@ -997,6 +997,15 @@ body::before {
   gap: 8px;
 }
 
+.goal-number {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
 .goal-card__header h3 {
   margin: 6px 0 0;
   font-size: 20px;

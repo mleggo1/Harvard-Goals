@@ -982,7 +982,7 @@ function applyTimeframe(value, options = {}) {
         <header className="app-hero">
           <div>
             <p className="eyebrow">Harvard Goals Method</p>
-            <h1 className="hero-title">{ownerName ? `🚀 ${ownerName}'s Life Goals Blueprint` : "🚀 Your Life Goals Blueprint"}</h1>
+            <h1 className="hero-title">{ownerName ? `🚀 ${ownerName}'s Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}` : `🚀 Your Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}`}</h1>
             <p className="hero-subhead">
               Turn your biggest dreams into a clear plan. Write down your goals, set your focus, take action every day, and share your progress with people who support you.
             </p>
@@ -1315,11 +1315,17 @@ function applyTimeframe(value, options = {}) {
                 </div>
               ) : (
                 <div className="goals-list">
-                  {filteredGoals.map((goal) => (
+                  {filteredGoals.map((goal, index) => {
+                    // Calculate goal number based on all goals, not just filtered
+                    const goalNumber = goals.findIndex(g => g.id === goal.id) + 1;
+                    return (
                     <article key={goal.id} className="goal-card">
                       <div className="goal-card__header">
                         <div className="goal-header-main">
                           <div className="goal-header-top">
+                            <div className="goal-number">
+                              GOAL {goalNumber}
+                            </div>
                             {isCustomTimeframeValue(goal.timeframe) ? (
                               <div className="custom-days-display">
                                 <label className="custom-days-label">GOAL</label>
@@ -1524,7 +1530,8 @@ function applyTimeframe(value, options = {}) {
                         </div>
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </article>
