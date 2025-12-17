@@ -37,7 +37,7 @@ export default function PasswordGate({ children }) {
   return (
     <div className="password-gate">
       <div className="password-gate-content">
-        <h1>Welcome to Goals Blueprint</h1>
+        <h1>Welcome to Your Life Goals Blueprint</h1>
         <form onSubmit={handleLogin}>
           <div className="password-input-group">
             <input

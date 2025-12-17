@@ -3,6 +3,7 @@ import jsPDF from "jspdf";
 import "./App.css";
 
 const STORAGE_KEY = "harvard_goals_v2";
+const OWNER_DEVICE_KEY = "harvard_goals_owner_device";
 
 const AREAS = [
   "Health & Energy",
@@ -205,7 +206,25 @@ function hydrateGoal(goal) {
   };
 }
 
+function isOwnerDevice() {
+  return localStorage.getItem(OWNER_DEVICE_KEY) === "true";
+}
+
+function setOwnerDevice(value) {
+  if (value) {
+    localStorage.setItem(OWNER_DEVICE_KEY, "true");
+  } else {
+    localStorage.removeItem(OWNER_DEVICE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
 function loadInitialState() {
+  // Only load saved data if this is the owner's device
+  if (!isOwnerDevice()) {
+    return DEFAULT_STATE;
+  }
+  
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -311,7 +330,10 @@ export default function App() {
   } = planner;
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(planner));
+    // Only save data if this is the owner's device
+    if (isOwnerDevice()) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(planner));
+    }
   }, [planner]);
 
   useEffect(() => {
@@ -666,6 +688,11 @@ function applyTimeframe(value, options = {}) {
   }
 
   function downloadPlanJson() {
+    // Enable saving when downloading
+    if (!isOwnerDevice()) {
+      setOwnerDevice(true);
+    }
+    
     const blob = new Blob([JSON.stringify(planner, null, 2)], {
       type: "application/json"
     });
@@ -677,80 +704,194 @@ function applyTimeframe(value, options = {}) {
     URL.revokeObjectURL(url);
   }
 
+  function loadPlanJson(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const loaded = JSON.parse(e.target.result);
+        // Enable saving when loading a file
+        setOwnerDevice(true);
+        setPlanner({
+          ...DEFAULT_STATE,
+          ...loaded,
+          ritualChecks: {
+            ...DEFAULT_STATE.ritualChecks,
+            ...(loaded.ritualChecks || {})
+          },
+          goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
+        });
+        // Reset file input
+        event.target.value = "";
+      } catch (error) {
+        alert("Error loading file. Please make sure it's a valid Goals Blueprint file.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
   function exportGoalsToPdf() {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const marginX = 48;
+    const pageHeight = 792; // A4 height in points
+    const bottomMargin = 60;
+    const maxY = pageHeight - bottomMargin;
     let cursorY = 60;
 
+    function checkPageBreak(requiredHeight) {
+      if (cursorY + requiredHeight > maxY) {
+        doc.addPage();
+        cursorY = 60;
+      }
+    }
+
+    // Title page
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text(ownerName ? `${ownerName}'s Life Blueprint` : "Your Life Blueprint", marginX, cursorY);
+    doc.text(ownerName ? `${ownerName}'s Life Goals Blueprint` : "Your Life Goals Blueprint", marginX, cursorY);
+    cursorY += 40;
 
-    doc.setFontSize(12);
+    // Foundation section
+    checkPageBreak(100);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Foundation", marginX, cursorY);
+    cursorY += 20;
+    doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    cursorY += 24;
-    const intro = [
+    const foundation = [
       `Planner owner: ${ownerName || "—"}`,
       `Focus word: ${focusWord || "—"}`,
       `Weekly mantra: ${weeklyMantra || "—"}`,
       `Celebration plan: ${celebrationPlan || "—"}`
     ];
-    intro.forEach((line) => {
+    foundation.forEach((line) => {
+      checkPageBreak(16);
+      const wrapped = doc.splitTextToSize(line, 500);
+      wrapped.forEach((wrappedLine) => {
+        checkPageBreak(16);
+        doc.text(wrappedLine, marginX, cursorY);
+        cursorY += 16;
+      });
+    });
+
+    // 10+ Year Vision - new page
+    checkPageBreak(200);
+    if (cursorY > 100) {
+      doc.addPage();
+      cursorY = 60;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("10+ YEAR VISION", marginX, cursorY);
+    cursorY += 20;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const visionLines = doc.splitTextToSize(vision10 || "—", 500);
+    visionLines.forEach((line) => {
+      checkPageBreak(16);
       doc.text(line, marginX, cursorY);
       cursorY += 16;
     });
+    if (notes) {
+      cursorY += 10;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Why it matters:", marginX, cursorY);
+      cursorY += 16;
+      doc.setFont("helvetica", "normal");
+      const notesLines = doc.splitTextToSize(notes, 500);
+      notesLines.forEach((line) => {
+        checkPageBreak(16);
+        doc.text(line, marginX, cursorY);
+        cursorY += 16;
+      });
+    }
 
-    cursorY += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text("10+ Year Vision", marginX, cursorY);
-    cursorY += 16;
-    doc.setFont("helvetica", "normal");
-    const visionLines = doc.splitTextToSize(vision10 || "—", 500);
-    visionLines.forEach((line) => {
-      if (cursorY > 760) {
+    // Goals - each goal on new page if needed
+    goals.forEach((goal, index) => {
+      checkPageBreak(150);
+      if (cursorY > 100) {
         doc.addPage();
         cursorY = 60;
       }
-      doc.text(line, marginX, cursorY);
-      cursorY += 16;
-    });
-
-    cursorY += 16;
-    doc.setFont("helvetica", "bold");
-    doc.text("Goals", marginX, cursorY);
-    cursorY += 24;
-
-    goals.forEach((goal, index) => {
-      const block = [
-        `${index + 1}. ${goal.text}`,
-        `Area: ${goal.area}  |  Timeframe: ${formatTimeframeLabel(goal.timeframe)}  |  Priority: ${
-          goal.priority
-        }`,
-        `Status: ${goal.status}  |  Progress: ${goal.progress}%  |  Deadline: ${
-          goal.deadline ? new Date(goal.deadline).toLocaleDateString() : "—"
-        }`,
-        `Why: ${goal.why || "—"}`,
-        `Next step: ${goal.nextStep || "—"}`,
-        `Reward: ${goal.reward || "—"}`
-      ];
-
-      block.forEach((line) => {
-        const wrapped = doc.splitTextToSize(line, 500);
-        wrapped.forEach((wrappedLine) => {
-          if (cursorY > 760) {
-            doc.addPage();
-            cursorY = 60;
-          }
-          doc.setFont(
-            wrappedLine === block[0] ? "helvetica" : "helvetica",
-            wrappedLine === block[0] ? "bold" : "normal"
-          );
-          doc.text(wrappedLine, marginX, cursorY);
-          cursorY += 16;
-        });
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(`Goal ${index + 1}`, marginX, cursorY);
+      cursorY += 20;
+      
+      const goalText = doc.splitTextToSize(goal.text, 500);
+      goalText.forEach((line) => {
+        checkPageBreak(16);
+        doc.text(line, marginX, cursorY);
+        cursorY += 16;
       });
-
+      
       cursorY += 10;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const meta = [
+        `Area: ${goal.area}`,
+        `Timeframe: ${formatTimeframeLabel(goal.timeframe)}`,
+        `Priority: ${goal.priority} (5 = highest)`,
+        `Status: ${goal.status} | Progress: ${goal.progress}%`,
+        `Deadline: ${goal.deadline ? new Date(goal.deadline).toLocaleDateString() : "—"}`
+      ];
+      meta.forEach((line) => {
+        checkPageBreak(14);
+        doc.text(line, marginX, cursorY);
+        cursorY += 14;
+      });
+      
+      if (goal.why) {
+        cursorY += 8;
+        checkPageBreak(30);
+        doc.setFont("helvetica", "bold");
+        doc.text("Why it matters:", marginX, cursorY);
+        cursorY += 14;
+        doc.setFont("helvetica", "normal");
+        const whyLines = doc.splitTextToSize(goal.why, 500);
+        whyLines.forEach((line) => {
+          checkPageBreak(14);
+          doc.text(line, marginX, cursorY);
+          cursorY += 14;
+        });
+      }
+      
+      if (goal.nextStep) {
+        cursorY += 8;
+        checkPageBreak(30);
+        doc.setFont("helvetica", "bold");
+        doc.text("Next bold action:", marginX, cursorY);
+        cursorY += 14;
+        doc.setFont("helvetica", "normal");
+        const nextLines = doc.splitTextToSize(goal.nextStep, 500);
+        nextLines.forEach((line) => {
+          checkPageBreak(14);
+          doc.text(line, marginX, cursorY);
+          cursorY += 14;
+        });
+      }
+      
+      if (goal.reward) {
+        cursorY += 8;
+        checkPageBreak(30);
+        doc.setFont("helvetica", "bold");
+        doc.text("Reward / celebration:", marginX, cursorY);
+        cursorY += 14;
+        doc.setFont("helvetica", "normal");
+        const rewardLines = doc.splitTextToSize(goal.reward, 500);
+        rewardLines.forEach((line) => {
+          checkPageBreak(14);
+          doc.text(line, marginX, cursorY);
+          cursorY += 14;
+        });
+      }
+      
+      cursorY += 20;
     });
 
     doc.save("goals-blueprint.pdf");
@@ -767,7 +908,6 @@ function applyTimeframe(value, options = {}) {
     });
   }
 
-  const heroModeLabel = theme === "day" ? "Daylight" : "Night shift";
   const timeframeSelectValue = isCustomTimeframe ? "custom" : newGoalTime;
   const templateGroups = Object.entries(GOAL_TEMPLATE_GROUPS);
   const customTimeframePreview = formatTimeframeLabel(
@@ -780,49 +920,57 @@ function applyTimeframe(value, options = {}) {
         <header className="app-hero">
           <div>
             <p className="eyebrow">Harvard Goals Method</p>
-            <h1>{ownerName ? `🚀 ${ownerName}'s Life Blueprint` : "🚀 Your Life Blueprint"}</h1>
+            <h1 className="hero-title">{ownerName ? `🚀 ${ownerName}'s Life Goals Blueprint` : "🚀 Your Life Goals Blueprint"}</h1>
             <p className="hero-subhead">
               Turn your biggest dreams into a clear plan. Write down your goals, set your focus, take action every day, and share your progress with people who support you.
             </p>
-            <div className="planner-owner">
-              <label>Your name</label>
-              <input
-                type="text"
-                value={ownerName}
-                onChange={(e) => updatePlannerField("ownerName", e.target.value)}
-                placeholder="Example: Michael"
-              />
-            </div>
-          </div>
-          <div className="hero-actions">
-            <div className="theme-toggle">
-              <span>{heroModeLabel}</span>
-              <button
-                className={theme === "day" ? "active" : ""}
-                onClick={() => updatePlannerField("theme", "day")}
-              >
-                ☀ Light
-              </button>
-              <button
-                className={theme === "night" ? "active" : ""}
-                onClick={() => updatePlannerField("theme", "night")}
-              >
-                🌙 Night
-              </button>
-            </div>
-            <div className="hero-buttons">
-              <button className="btn btn-ghost" onClick={downloadPlanJson}>
-                💾 Save file
-              </button>
-              <button className="btn btn-ghost" onClick={exportGoalsToPdf}>
-                📄 Export PDF
-              </button>
-              <button className="btn btn-ghost" onClick={printPage}>
-                🖨 Print
-              </button>
-              <button className="btn danger" onClick={clearAll}>
-                ♻ Reset
-              </button>
+            <div className="planner-owner-row">
+              <div className="planner-owner">
+                <label>Your name</label>
+                <input
+                  type="text"
+                  value={ownerName}
+                  onChange={(e) => updatePlannerField("ownerName", e.target.value)}
+                  placeholder="Example: Michael"
+                />
+              </div>
+              <div className="hero-top-actions">
+                <div className="file-actions">
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={loadPlanJson}
+                    id="file-input"
+                    style={{ display: "none" }}
+                  />
+                  <label htmlFor="file-input" className="btn btn-ghost" title="Load a saved Goals Blueprint file">
+                    📂 Open
+                  </label>
+                  <button 
+                    className={`btn btn-ghost ${isOwnerDevice() ? "active" : ""}`}
+                    onClick={downloadPlanJson}
+                    title={isOwnerDevice() ? "Save your Goals Blueprint (saving enabled)" : "Save your Goals Blueprint and enable saving on this device"}
+                  >
+                    💾 {isOwnerDevice() ? "Save" : "Save & enable"}
+                  </button>
+                  <button className="btn btn-ghost" onClick={exportGoalsToPdf} title="Export to PDF">
+                    📄 PDF
+                  </button>
+                  <button className="btn btn-ghost" onClick={printPage} title="Print">
+                    🖨 Print
+                  </button>
+                  <button className="btn danger" onClick={clearAll} title="Reset all data">
+                    ♻ Reset
+                  </button>
+                </div>
+                <button
+                  className="btn btn-ghost theme-toggle-btn"
+                  onClick={() => updatePlannerField("theme", theme === "day" ? "night" : "day")}
+                  title={`Switch to ${theme === "day" ? "night" : "day"} mode`}
+                >
+                  {theme === "day" ? "🌙 Night" : "☀ Day"}
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -839,11 +987,19 @@ function applyTimeframe(value, options = {}) {
                 <span>FOCUS WORD</span>
               </div>
               <p>Choose the single word that will govern your decisions this season.</p>
-              <input
-                type="text"
+              <textarea
                 value={focusWord}
-                onChange={(e) => updatePlannerField("focusWord", e.target.value)}
+                onChange={(e) => {
+                  updatePlannerField("focusWord", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
                 placeholder="Example: Momentum, Clarity, Action, Growth"
+                rows={1}
               />
             </article>
             <article className="focus-card">
@@ -891,7 +1047,7 @@ function applyTimeframe(value, options = {}) {
 
         <main className="planner-grid">
           <section className="column">
-            <article className="card">
+            <article className="card card-vision">
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🔭</span>
