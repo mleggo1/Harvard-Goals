@@ -457,6 +457,31 @@ body::before {
   max-width: 420px;
 }
 
+.card-subtitle-inspire {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 600px) {
+  .card-subtitle-inspire {
+    white-space: normal;
+  }
+}
+
+.card-footer {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.btn-save-goal {
+  width: 100%;
+  max-width: 300px;
+}
+
 .field {
   display: flex;
   flex-direction: column;

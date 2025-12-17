@@ -902,11 +902,8 @@ function applyTimeframe(value, options = {}) {
                     <span className="icon">📝</span>
                     <span>Add a goal</span>
                   </div>
-                  <p>Be concrete. What must be true for the vision above to be present tense?</p>
+                  <p className="card-subtitle-inspire">What specific outcome will make your vision a reality?</p>
                 </div>
-                <button className="btn primary" onClick={handleAddGoal}>
-                  ➕ Capture goal
-                </button>
               </header>
               <div className="field">
                 <label>Need inspiration?</label>
@@ -1021,6 +1018,11 @@ function applyTimeframe(value, options = {}) {
                     placeholder="When I finish I will..."
                   />
                 </div>
+              </div>
+              <div className="card-footer">
+                <button className="btn primary btn-save-goal" onClick={handleAddGoal}>
+                  ➕ Save Goal
+                </button>
               </div>
             </article>
 
