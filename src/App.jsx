@@ -64,36 +64,6 @@ const DEFAULT_STATE = {
 
 const GOAL_TEMPLATES = [
   {
-    id: "health-ideal-body",
-    area: "Health & Energy",
-    text: "Build a lean, strong body that gives me energy for everything else I want to do.",
-    timeframe: "1-year",
-    priority: 5,
-    why: "When I feel strong and energetic, everything else in life gets easier.",
-    nextStep: "Block out regular training times in my calendar and stick to them.",
-    reward: "Buy myself new gear or book a session after 6 weeks of consistency."
-  },
-  {
-    id: "health-stay-fit",
-    area: "Health & Energy",
-    text: "Stay flexible, strong, and injury-free so I can move well every day.",
-    timeframe: "90-day",
-    priority: 5,
-    why: "Being able to move without pain means I can show up fully for life.",
-    nextStep: "Commit to three mobility and strength sessions each week.",
-    reward: "Upgrade my equipment after 12 weeks of showing up."
-  },
-  {
-    id: "health-training-sessions",
-    area: "Health & Energy",
-    text: "Complete XX quality training sessions this year and track my progress.",
-    timeframe: "1-year",
-    priority: 4,
-    why: "Showing up consistently builds momentum that compounds over time.",
-    nextStep: "Set up a simple tracker and plan my first 10 weeks of sessions.",
-    reward: "Take a recovery weekend once I hit the halfway point."
-  },
-  {
     id: "health-strength-training",
     area: "Health & Energy",
     text: "I strength train 3–4 times per week to build and maintain muscle, strength, and long-term independence.",
