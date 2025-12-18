@@ -1648,7 +1648,7 @@ body::before {
   background: rgba(15, 23, 42, 0.3);
 }
 
-/* Mobile optimization - iPhone and small screens */
+/* Mobile optimization - iPhone, Android, and all mobile devices */
 @media (max-width: 768px) {
   .focus-section-title {
     font-size: 24px;
@@ -2132,7 +2132,7 @@ body::before {
   }
 }
 
-/* Small mobile - iPhone SE and similar */
+/* Small mobile - iPhone SE, Android phones, and similar small devices */
 @media (max-width: 640px) {
   .app-root {
     padding: 12px 8px 24px !important;
