@@ -540,7 +540,8 @@ body::before {
 .focus-card textarea {
   resize: none;
   min-height: 60px;
-  overflow-y: hidden;
+  overflow: visible;
+  overflow-y: visible;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
@@ -872,10 +873,12 @@ body::before {
 .field textarea {
   min-height: 110px;
   resize: none;
-  overflow-y: hidden;
+  overflow: visible;
+  overflow-y: visible;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+  max-height: none;
 }
 
 .field-grid {
@@ -1028,8 +1031,9 @@ body::before {
   overflow-wrap: break-word;
   white-space: pre-wrap;
   resize: none;
-  overflow-y: hidden;
-  overflow-x: hidden;
+  overflow: visible;
+  overflow-y: visible;
+  overflow-x: visible;
   line-height: 1.4;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
@@ -1613,10 +1617,12 @@ body::before {
   font-size: 14px;
   font-family: inherit;
   resize: none;
-  overflow-y: hidden;
+  overflow: visible;
+  overflow-y: visible;
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+  max-height: none;
   box-sizing: border-box;
 }
 
@@ -1922,131 +1928,19 @@ body::before {
     size: A4;
   }
 
-  /* Force white background and black text */
-  body {
-    background: #fff !important;
-    color: #0f172a !important;
-  }
-
-  /* AGGRESSIVE: Remove ALL height constraints on EVERYTHING */
-  *,
-  *::before,
-  *::after {
-    max-height: none !important;
-    height: auto !important;
-  }
-
-  /* Make heading black for print */
-  .app-hero h1,
-  .hero-title {
-    background: #0f172a !important;
-    -webkit-background-clip: unset !important;
-    -webkit-text-fill-color: #0f172a !important;
-    background-clip: unset !important;
-    color: #0f172a !important;
-    animation: none !important;
-    filter: none !important;
-  }
-
-  /* AGGRESSIVE: Force ALL textareas to show FULL content - NO exceptions */
-  textarea,
-  textarea.focus-card textarea,
-  textarea.field textarea,
-  textarea.goal-grid textarea,
-  textarea.goal-title-input,
-  .focus-card textarea,
-  .field textarea,
-  .goal-grid textarea,
-  .goal-title-input,
-  .card textarea {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow: visible !important;
-    overflow-y: visible !important;
-    overflow-x: visible !important;
-    white-space: pre-wrap !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    resize: none !important;
-    display: block !important;
-    box-sizing: border-box !important;
-    /* Force textarea to use its scrollHeight */
-    line-height: 1.5 !important;
-  }
-
-  /* AGGRESSIVE: Force ALL containers to expand fully */
-  .app-root,
-  .app-shell,
-  .focus-section,
-  .focus-grid,
-  .focus-card,
-  .card,
-  .card-vision,
-  .card-add-goal,
-  .card-goal-board,
-  .goal-card,
-  .goal-card__body,
-  .goal-card__header,
-  .field,
-  .field-grid,
-  .planner-grid,
-  .column,
-  .column-side {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    display: block !important;
-  }
-
-  /* Remove flex constraints that might limit expansion */
-  .focus-card,
-  .card,
-  .goal-card {
-    flex-direction: column !important;
-    display: block !important;
-  }
-
-  /* Hide buttons and interactive elements */
+  /* Print exactly what's on screen - just hide buttons */
   .btn,
   .hero-top-actions,
   .file-actions,
   .theme-toggle-btn,
-  input[type="range"],
-  select {
+  input[type="range"] {
     display: none !important;
   }
 
-  /* Remove backgrounds and shadows */
-  .app-hero,
-  .card,
-  .focus-card,
-  .goal-card {
-    background: #fff !important;
-    box-shadow: none !important;
-    border: 1px solid rgba(15, 23, 42, 0.15) !important;
-  }
-
-  /* Page breaks - avoid breaking inside cards */
-  .focus-card,
-  .card,
-  .goal-card {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Add padding to ensure text isn't cut off at edges */
-  .focus-card,
-  .card,
-  .goal-card {
-    padding-bottom: 20px !important;
-  }
-
-  textarea {
-    padding-bottom: 10px !important;
-    margin-bottom: 10px !important;
-  }
+  /* Ensure colors print (if browser supports it) */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color-adjust: exact;
 }
 @media (max-width: 1024px) {
   .focus-section-title {

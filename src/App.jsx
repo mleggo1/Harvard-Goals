@@ -336,69 +336,44 @@ export default function App() {
     }
   }, [planner]);
 
-  // Auto-resize all textareas on mount and when content changes
+  // Auto-resize all textareas to show ALL content - print will capture what's visible on screen
   useEffect(() => {
-    const resizeTextareas = () => {
+    const expandAllTextareas = () => {
       const textareas = document.querySelectorAll('textarea');
       textareas.forEach((textarea) => {
-        // Reset height to auto first
+        // Reset height to auto to get accurate scrollHeight
         textarea.style.height = "auto";
-        // Set height to scrollHeight to fit all content
+        // Set height to scrollHeight to show ALL content - no cutoff
         const scrollHeight = textarea.scrollHeight;
         textarea.style.height = `${scrollHeight}px`;
-        // Ensure min-height doesn't constrain
         textarea.style.minHeight = `${scrollHeight}px`;
+        textarea.style.maxHeight = "none";
+        // Ensure overflow is visible so nothing is hidden
+        textarea.style.overflow = "visible";
+        textarea.style.overflowY = "visible";
       });
     };
+
+    // Expand on mount and whenever content changes
+    expandAllTextareas();
     
-    resizeTextareas();
-    // Also resize after a short delay to ensure content is rendered
-    const timeout = setTimeout(resizeTextareas, 100);
-    // Resize again after a longer delay for print preparation
-    const timeout2 = setTimeout(resizeTextareas, 500);
+    // Also expand before print to ensure everything is visible
+    const handleBeforePrint = () => {
+      expandAllTextareas();
+    };
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    
+    // Resize after a short delay to ensure content is rendered
+    const timeout = setTimeout(expandAllTextareas, 100);
+    const timeout2 = setTimeout(expandAllTextareas, 500);
     
     return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
       clearTimeout(timeout);
       clearTimeout(timeout2);
     };
   }, [planner.vision10, planner.notes, planner.focusWord, planner.weeklyMantra, planner.celebrationPlan, planner.goals]);
-
-  // Resize textareas before print - CRITICAL for showing all content
-  useEffect(() => {
-    const handleBeforePrint = () => {
-      // Force all textareas to expand to show ALL content
-      const textareas = document.querySelectorAll('textarea');
-      textareas.forEach((textarea) => {
-        // Remove all height constraints
-        textarea.style.height = "auto";
-        textarea.style.minHeight = "0";
-        textarea.style.maxHeight = "none";
-        // Force visible overflow
-        textarea.style.overflow = "visible";
-        textarea.style.overflowY = "visible";
-        textarea.style.overflowX = "visible";
-        // Calculate and set height based on full content
-        const scrollHeight = textarea.scrollHeight;
-        // Set height to scrollHeight to show ALL content
-        textarea.style.height = `${scrollHeight}px`;
-        textarea.style.minHeight = `${scrollHeight}px`;
-      });
-      
-      // Also force all containers to expand
-      const containers = document.querySelectorAll('.focus-card, .card, .goal-card, .field, .goal-card__body');
-      containers.forEach((container) => {
-        container.style.height = "auto";
-        container.style.minHeight = "auto";
-        container.style.maxHeight = "none";
-        container.style.overflow = "visible";
-      });
-    };
-
-    window.addEventListener('beforeprint', handleBeforePrint);
-    return () => {
-      window.removeEventListener('beforeprint', handleBeforePrint);
-    };
-  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme === "day" ? "day" : "night";
