@@ -1,14 +1,19 @@
 import React from "react";
 
 export default function PrintView({ planner }) {
+  // Add safety checks for planner
+  if (!planner) {
+    return null;
+  }
+
   const {
-    ownerName,
-    vision10,
-    notes,
-    focusWord,
-    weeklyMantra,
-    celebrationPlan,
-    goals
+    ownerName = "",
+    vision10 = "",
+    notes = "",
+    focusWord = "",
+    weeklyMantra = "",
+    celebrationPlan = "",
+    goals = []
   } = planner;
 
   const formatTimeframeLabel = (value) => {
@@ -46,7 +51,7 @@ export default function PrintView({ planner }) {
         <header className="print-header">
           <h1 className="print-title">
             {ownerName ? `${ownerName}'s Life Goals Blueprint` : "Your Life Goals Blueprint"}
-            {goals.length > 0 && ` (${goals.length} ${goals.length === 1 ? 'Goal' : 'Goals'})`}
+            {goals && goals.length > 0 && ` (${goals.length} ${goals.length === 1 ? 'Goal' : 'Goals'})`}
           </h1>
         </header>
 
@@ -89,7 +94,7 @@ export default function PrintView({ planner }) {
         </section>
 
         {/* Goals */}
-        {goals.length > 0 && (
+        {goals && goals.length > 0 && (
           <section className="print-section">
             <h2 className="print-section-title">GOALS BOARD</h2>
             {goals.map((goal, index) => {
@@ -99,18 +104,18 @@ export default function PrintView({ planner }) {
                   <div className="print-goal-header">
                     <span className="print-goal-number">GOAL {goalNumber}</span>
                     <span className="print-goal-meta">
-                      {goal.area} · {formatTimeframeLabel(goal.timeframe)} · Priority {goal.priority}
+                      {goal.area || "—"} · {formatTimeframeLabel(goal.timeframe)} · Priority {goal.priority || "—"}
                     </span>
                   </div>
-                  <h3 className="print-goal-title">{goal.text}</h3>
+                  <h3 className="print-goal-title">{goal.text || "—"}</h3>
                   <div className="print-goal-details">
                     <div className="print-goal-detail-row">
                       <span className="print-goal-detail-label">Status:</span>
-                      <span className="print-goal-detail-value">{goal.status}</span>
+                      <span className="print-goal-detail-value">{goal.status || "—"}</span>
                     </div>
                     <div className="print-goal-detail-row">
                       <span className="print-goal-detail-label">Progress:</span>
-                      <span className="print-goal-detail-value">{goal.progress}%</span>
+                      <span className="print-goal-detail-value">{goal.progress || 0}%</span>
                     </div>
                     <div className="print-goal-detail-row">
                       <span className="print-goal-detail-label">Deadline:</span>
