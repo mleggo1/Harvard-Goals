@@ -1941,6 +1941,120 @@ body::before {
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
   color-adjust: exact;
+
+  /* 1. Make heading more visible in print */
+  .app-hero h1,
+  .hero-title {
+    background: #0f172a !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #0f172a !important;
+    background-clip: unset !important;
+    color: #0f172a !important;
+    animation: none !important;
+    filter: none !important;
+    font-size: 32px !important;
+    font-weight: 800 !important;
+    text-shadow: none !important;
+  }
+
+  /* 2. Prevent boxes from being cut off - move to next page */
+  .focus-card,
+  .card,
+  .card-vision,
+  .card-add-goal,
+  .card-goal-board,
+  .goal-card,
+  .goal-card__body {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  /* Ensure cards don't get split across pages */
+  .focus-card,
+  .card,
+  .goal-card {
+    page-break-before: auto !important;
+    page-break-after: auto !important;
+  }
+
+  /* 3. Prevent overlapping containers - ensure proper spacing and layout */
+  .app-root {
+    display: block !important;
+  }
+
+  .app-shell {
+    display: block !important;
+  }
+
+  .focus-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .focus-grid {
+    display: block !important;
+  }
+
+  .focus-grid .focus-card {
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .planner-grid {
+    display: block !important;
+  }
+
+  .column,
+  .column-side {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 20px !important;
+  }
+
+  .column .card,
+  .column-side .card {
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Prevent summary grid from overlapping */
+  .summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .summary-grid > div {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Ensure goal cards don't overlap */
+  .goals-list {
+    display: block !important;
+  }
+
+  .goals-list .goal-card {
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Add spacing between sections */
+  .app-hero {
+    margin-bottom: 20px !important;
+    page-break-after: auto !important;
+  }
+
+  .focus-section {
+    margin-bottom: 20px !important;
+    page-break-after: auto !important;
+  }
 }
 @media (max-width: 1024px) {
   .focus-section-title {
