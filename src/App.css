@@ -611,6 +611,21 @@ body::before {
   animation: pulsateBorder 2.5s ease-in-out infinite;
   box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4),
               var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.card-add-goal.collapsed {
+  animation: none;
+}
+
+.card-add-goal.collapsed .card-add-goal-content {
+  display: none;
+}
+
+.collapse-toggle {
+  font-size: 11px !important;
+  padding: 6px 10px !important;
+  white-space: nowrap;
 }
 
 .card-add-goal .card-title {
@@ -1942,7 +1957,7 @@ body::before {
   print-color-adjust: exact;
   color-adjust: exact;
 
-  /* 1. Make heading more visible in print */
+  /* 1. Make heading more visible in print - darker blue/black */
   .app-hero h1,
   .hero-title {
     background: #0f172a !important;
@@ -1952,9 +1967,13 @@ body::before {
     color: #0f172a !important;
     animation: none !important;
     filter: none !important;
-    font-size: 32px !important;
-    font-weight: 800 !important;
-    text-shadow: none !important;
+    font-size: 36px !important;
+    font-weight: 900 !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
+    letter-spacing: -0.02em !important;
+    /* Add a darker border/outline effect */
+    text-stroke: 1px #0f172a !important;
+    -webkit-text-stroke: 1px #0f172a !important;
   }
 
   /* 2. Prevent boxes from being cut off - move to next page */
