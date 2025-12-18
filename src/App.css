@@ -1648,6 +1648,7 @@ body::before {
   background: rgba(15, 23, 42, 0.3);
 }
 
+/* Mobile optimization - iPhone and small screens */
 @media (max-width: 768px) {
   .focus-section-title {
     font-size: 24px;
@@ -1658,17 +1659,50 @@ body::before {
   }
   
   .focus-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
   }
   
   .focus-card {
-    min-height: 240px;
-    padding: 24px;
+    min-height: auto !important;
+    padding: 20px !important;
+    width: 100% !important;
   }
   
   .goal-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .planner-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .column,
+  .column-side {
+    width: 100% !important;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .app-root {
+    padding: 16px 12px 32px !important;
+  }
+
+  .app-hero {
+    padding: 20px 16px !important;
+}
+
+.card {
+    padding: 20px 16px !important;
+  }
+
+  .goal-card {
+    padding: 12px !important;
   }
 }
 
@@ -2075,7 +2109,8 @@ body::before {
     page-break-after: auto !important;
   }
 }
-@media (max-width: 1024px) {
+/* Tablet optimization */
+@media (max-width: 1024px) and (min-width: 769px) {
   .focus-section-title {
     font-size: 28px;
   }
@@ -2097,25 +2132,66 @@ body::before {
   }
 }
 
+/* Small mobile - iPhone SE and similar */
 @media (max-width: 640px) {
   .app-root {
-    padding: 24px 16px 40px;
+    padding: 12px 8px 24px !important;
   }
 
   .app-hero {
-    padding: 24px;
-}
+    padding: 16px 12px !important;
+  }
 
-.card {
-    padding: 20px;
+  .app-hero h1,
+  .hero-title {
+    font-size: 24px !important;
+    line-height: 1.2 !important;
+  }
+
+  .hero-subhead {
+    font-size: 13px !important;
+  }
+
+  .card {
+    padding: 16px 12px !important;
+  }
+
+  .focus-card {
+    padding: 16px 12px !important;
   }
 
   .goal-card {
-    padding: 16px;
+    padding: 12px 8px !important;
   }
 
   .goal-card__header {
     flex-direction: column;
+  }
+
+  .planner-owner-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .planner-owner {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .hero-top-actions {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .file-actions {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  .btn {
+    font-size: 11px !important;
+    padding: 6px 10px !important;
   }
 }
 
