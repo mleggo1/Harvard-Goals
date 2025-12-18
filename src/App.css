@@ -1928,8 +1928,10 @@ body::before {
     color: #0f172a !important;
   }
 
-  /* Remove all height constraints to show full content */
-  * {
+  /* AGGRESSIVE: Remove ALL height constraints on EVERYTHING */
+  *,
+  *::before,
+  *::after {
     max-height: none !important;
     height: auto !important;
   }
@@ -1946,16 +1948,63 @@ body::before {
     filter: none !important;
   }
 
-  /* Ensure all textareas show full content */
-  textarea {
+  /* AGGRESSIVE: Force ALL textareas to show FULL content - NO exceptions */
+  textarea,
+  textarea.focus-card textarea,
+  textarea.field textarea,
+  textarea.goal-grid textarea,
+  textarea.goal-title-input,
+  .focus-card textarea,
+  .field textarea,
+  .goal-grid textarea,
+  .goal-title-input,
+  .card textarea {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
     white-space: pre-wrap !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     resize: none !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    /* Force textarea to use its scrollHeight */
+    line-height: 1.5 !important;
+  }
+
+  /* AGGRESSIVE: Force ALL containers to expand fully */
+  .app-root,
+  .app-shell,
+  .focus-section,
+  .focus-grid,
+  .focus-card,
+  .card,
+  .card-vision,
+  .card-add-goal,
+  .card-goal-board,
+  .goal-card,
+  .goal-card__body,
+  .goal-card__header,
+  .field,
+  .field-grid,
+  .planner-grid,
+  .column,
+  .column-side {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Remove flex constraints that might limit expansion */
+  .focus-card,
+  .card,
+  .goal-card {
+    flex-direction: column !important;
     display: block !important;
   }
 
@@ -1963,7 +2012,9 @@ body::before {
   .btn,
   .hero-top-actions,
   .file-actions,
-  .theme-toggle-btn {
+  .theme-toggle-btn,
+  input[type="range"],
+  select {
     display: none !important;
   }
 
@@ -1977,23 +2028,24 @@ body::before {
     border: 1px solid rgba(15, 23, 42, 0.15) !important;
   }
 
-  /* Ensure containers don't constrain content */
-  .focus-card,
-  .card,
-  .goal-card,
-  .goal-card__body {
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
   /* Page breaks - avoid breaking inside cards */
   .focus-card,
   .card,
   .goal-card {
     page-break-inside: avoid;
     break-inside: avoid;
+  }
+
+  /* Add padding to ensure text isn't cut off at edges */
+  .focus-card,
+  .card,
+  .goal-card {
+    padding-bottom: 20px !important;
+  }
+
+  textarea {
+    padding-bottom: 10px !important;
+    margin-bottom: 10px !important;
   }
 }
 @media (max-width: 1024px) {

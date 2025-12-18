@@ -371,30 +371,32 @@ export default function App() {
       textareas.forEach((textarea) => {
         // Remove all height constraints
         textarea.style.height = "auto";
-        textarea.style.minHeight = "auto";
+        textarea.style.minHeight = "0";
         textarea.style.maxHeight = "none";
-        // Calculate and set height based on full content
-        const scrollHeight = textarea.scrollHeight;
-        // Add extra padding to ensure nothing is cut off
-        textarea.style.height = `${scrollHeight + 20}px`;
-        textarea.style.minHeight = `${scrollHeight + 20}px`;
         // Force visible overflow
         textarea.style.overflow = "visible";
         textarea.style.overflowY = "visible";
         textarea.style.overflowX = "visible";
+        // Calculate and set height based on full content
+        const scrollHeight = textarea.scrollHeight;
+        // Set height to scrollHeight to show ALL content
+        textarea.style.height = `${scrollHeight}px`;
+        textarea.style.minHeight = `${scrollHeight}px`;
+      });
+      
+      // Also force all containers to expand
+      const containers = document.querySelectorAll('.focus-card, .card, .goal-card, .field, .goal-card__body');
+      containers.forEach((container) => {
+        container.style.height = "auto";
+        container.style.minHeight = "auto";
+        container.style.maxHeight = "none";
+        container.style.overflow = "visible";
       });
     };
 
-    // Also handle afterprint to restore if needed
-    const handleAfterPrint = () => {
-      // Textareas will auto-resize on next content change
-    };
-
     window.addEventListener('beforeprint', handleBeforePrint);
-    window.addEventListener('afterprint', handleAfterPrint);
     return () => {
       window.removeEventListener('beforeprint', handleBeforePrint);
-      window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, []);
 
