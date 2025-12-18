@@ -1991,23 +1991,22 @@ body::before {
   print-color-adjust: exact;
   color-adjust: exact;
 
-  /* 1. Make heading more visible in print - darker blue/black */
+  /* 1. Make heading black and bold for print */
   .app-hero h1,
   .hero-title {
-    background: #0f172a !important;
+    background: #000000 !important;
     -webkit-background-clip: unset !important;
-    -webkit-text-fill-color: #0f172a !important;
+    -webkit-text-fill-color: #000000 !important;
     background-clip: unset !important;
-    color: #0f172a !important;
+    color: #000000 !important;
     animation: none !important;
     filter: none !important;
     font-size: 36px !important;
     font-weight: 900 !important;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
+    text-shadow: none !important;
     letter-spacing: -0.02em !important;
-    /* Add a darker border/outline effect */
-    text-stroke: 1px #0f172a !important;
-    -webkit-text-stroke: 1px #0f172a !important;
+    text-stroke: none !important;
+    -webkit-text-stroke: none !important;
   }
 
   /* 2. Prevent boxes from being cut off - move to next page */
