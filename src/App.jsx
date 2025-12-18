@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
-import PrintView from "./PrintView";
 import "./App.css";
 
 const STORAGE_KEY = "harvard_goals_v2";
@@ -747,7 +746,6 @@ function applyTimeframe(value, options = {}) {
   }
 
   function printPage() {
-    // Simply trigger print - CSS will handle showing/hiding
     window.print();
   }
 
@@ -979,9 +977,7 @@ function applyTimeframe(value, options = {}) {
   );
 
   return (
-    <>
-      <PrintView planner={planner} />
-      <div className={`app-root ${theme}-skin`}>
+    <div className={`app-root ${theme}-skin`}>
         <div className="app-shell">
         <header className="app-hero">
           <div>
@@ -1685,6 +1681,5 @@ function applyTimeframe(value, options = {}) {
         </footer>
       </div>
     </div>
-    </>
   );
 }

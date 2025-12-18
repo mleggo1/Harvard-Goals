@@ -1,0 +1,73 @@
+{
+  "vision10": "",
+  "notes": "",
+  "focusWord": "",
+  "weeklyMantra": "",
+  "celebrationPlan": "",
+  "theme": "night",
+  "ritualChecks": {
+    "review": false,
+    "plan": false,
+    "celebrate": false,
+    "energy": false
+  },
+  "ownerName": "Cathryn",
+  "goals": [
+    {
+      "id": "g_1765962582340_5619",
+      "text": "ds;lfksd;lfsd;lfsd;lfsd;lff;sdl",
+      "area": "Adventure & Travel",
+      "timeframe": "90-day",
+      "priority": 4,
+      "status": "Done",
+      "createdAt": "2025-12-17T09:09:42.340Z",
+      "why": "",
+      "nextStep": "",
+      "reward": "",
+      "deadline": "2026-03-16",
+      "progress": 60
+    },
+    {
+      "id": "g_1765962558187_3468",
+      "text": "Have a dedicated weekly date night with my partner.",
+      "area": "Family & Relationships",
+      "timeframe": "30-day",
+      "priority": 4,
+      "status": "Not started",
+      "createdAt": "2025-12-17T09:09:18.187Z",
+      "why": "Protected connection time keeps our relationship playful, aligned and grateful.",
+      "nextStep": "Block one night per week as sacred, arrange childcare if needed, and plan the first month.",
+      "reward": "Book a surprise weekend away after eight straight weeks.",
+      "deadline": "2026-01-15",
+      "progress": 0
+    },
+    {
+      "id": "g_1765962492975_7280",
+      "text": "Build a lean, strong body that gives me energy for everything else I want to do.",
+      "area": "Health & Energy",
+      "timeframe": "1-year",
+      "priority": 5,
+      "status": "Not started",
+      "createdAt": "2025-12-17T09:08:12.975Z",
+      "why": "When I feel strong and energetic, everything else in life gets easier.",
+      "nextStep": "Block out regular training times in my calendar and stick to them.",
+      "reward": "Buy myself new gear or book a session after 6 weeks of consistency.",
+      "deadline": "2026-12-16",
+      "progress": 0
+    },
+    {
+      "id": "g_1765962448692_9697",
+      "text": "Build $250,000 per year in passive income.",
+      "area": "Wealth & Investing",
+      "timeframe": "5-year",
+      "priority": 5,
+      "status": "Not started",
+      "createdAt": "2025-12-17T09:07:28.692Z",
+      "why": "Passive income creates total freedom for travel, experiences and family time.",
+      "nextStep": "Model my income strategy and set quarterly acquisition targets.",
+      "reward": "Celebrate each major milestone with a special experience or dinner.",
+      "deadline": "2030-12-15",
+      "progress": 0
+    }
+  ]
+}

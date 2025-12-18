@@ -1915,273 +1915,85 @@ body::before {
   padding: 12px 4px 24px;
 }
 
-/* Print View Styles - Hidden by default, shown only in print */
-.print-view {
-  display: none;
-}
-
-.print-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.print-header {
-  margin-bottom: 32px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #0f172a;
-}
-
-.print-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.print-section {
-  margin-bottom: 32px;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.print-section-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 16px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #cbd5e1;
-}
-
-.print-foundation {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.print-field {
-  margin-bottom: 16px;
-}
-
-.print-field label {
-  display: block;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #64748b;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.print-value {
-  font-size: 15px;
-  color: #0f172a;
-  line-height: 1.6;
-  padding: 8px 0;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
-}
-
-.print-long-text {
-  min-height: auto;
-  padding: 12px 0;
-  line-height: 1.7;
-}
-
-.print-goal {
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #e2e8f0;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.print-goal:last-child {
-  border-bottom: none;
-}
-
-.print-goal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.print-goal-number {
-  font-size: 12px;
-  font-weight: 700;
-  color: #2563eb;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.print-goal-meta {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.print-goal-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 12px 0;
-  line-height: 1.4;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.print-goal-details {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.print-goal-detail-row {
-  display: flex;
-  gap: 6px;
-  font-size: 13px;
-}
-
-.print-goal-detail-label {
-  font-weight: 600;
-  color: #64748b;
-}
-
-.print-goal-detail-value {
-  color: #0f172a;
-}
-
-.print-goal-field {
-  margin-bottom: 16px;
-}
-
-.print-goal-field label {
-  display: block;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #64748b;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
 @media print {
-  /* Hide main app when printing */
-  .app-root {
-    display: none !important;
-  }
-
-  /* Show print view */
-  .print-view {
-    display: block !important;
-  }
-
   /* Page setup */
   @page {
     margin: 14mm;
     size: A4;
   }
 
-  :root {
-    --page-bg: #fff;
-    --surface: #fff;
-    --surface-strong: #fff;
-    --surface-highlight: #fff;
-    --text-primary: #0f172a;
-    --text-muted: #475569;
-    --border: rgba(15, 23, 42, 0.2);
-    --shadow: none;
-  }
-
+  /* Force white background and black text */
   body {
     background: #fff !important;
     color: #0f172a !important;
-    font-size: 12pt;
-    line-height: 1.5;
   }
 
-  /* Remove all height constraints */
+  /* Remove all height constraints to show full content */
   * {
     max-height: none !important;
     height: auto !important;
   }
 
-  /* Print view specific */
-  .print-view {
-    display: block !important;
-    background: #fff !important;
+  /* Make heading black for print */
+  .app-hero h1,
+  .hero-title {
+    background: #0f172a !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #0f172a !important;
+    background-clip: unset !important;
+    color: #0f172a !important;
+    animation: none !important;
+    filter: none !important;
   }
 
-  .print-container {
-    max-width: 100%;
-    padding: 0;
-  }
-
-  .print-section {
-    page-break-inside: avoid;
-    break-inside: avoid;
-    margin-bottom: 24px;
-  }
-
-  .print-goal {
-    page-break-inside: avoid;
-    break-inside: avoid;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-  }
-
-  /* Ensure all text is visible */
-  .print-value,
-  .print-long-text {
+  /* Ensure all textareas show full content */
+  textarea {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     white-space: pre-wrap !important;
     word-wrap: break-word !important;
-    overflow-wrap: anywhere !important;
-    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    resize: none !important;
     display: block !important;
   }
 
-  /* Force black text */
-  .print-title,
-  .print-section-title,
-  .print-goal-title,
-  .print-value,
-  .print-goal-detail-value {
-    color: #0f172a !important;
+  /* Hide buttons and interactive elements */
+  .btn,
+  .hero-top-actions,
+  .file-actions,
+  .theme-toggle-btn {
+    display: none !important;
   }
 
   /* Remove backgrounds and shadows */
-  .print-view,
-  .print-container,
-  .print-section,
-  .print-goal {
+  .app-hero,
+  .card,
+  .focus-card,
+  .goal-card {
     background: #fff !important;
     box-shadow: none !important;
-    border: none !important;
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
   }
 
-  .print-goal {
-    border-bottom: 1px solid #e2e8f0 !important;
+  /* Ensure containers don't constrain content */
+  .focus-card,
+  .card,
+  .goal-card,
+  .goal-card__body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
-  .print-section-title {
-    border-bottom: 1px solid #cbd5e1 !important;
-  }
-
-  .print-header {
-    border-bottom: 2px solid #0f172a !important;
+  /* Page breaks - avoid breaking inside cards */
+  .focus-card,
+  .card,
+  .goal-card {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }
 @media (max-width: 1024px) {

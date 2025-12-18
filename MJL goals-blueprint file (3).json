@@ -1,0 +1,73 @@
+{
+  "vision10": "It's 2035. I’m living with purpose, freedom, and great health.\nI wake up in my villa overlooking the ocean in Bali, fit, powerful, and surf-ready every day.\nMy wealth engines run automatically — multiple properties, ETFs, crypto, and global income streams all compounding while I sleep.\n\nI spend my days coaching high-quality clients, building tools that transform lives, surfing world-class waves, and travelling between Perth, Bali, and anywhere my family wants to explore.\n\nHarrison is thriving — confident, intelligent, financially literate — and we take epic father–son surf trips every year.\n\nCathryn and I are happy and living a life designed around freedom, adventure, and family.\n\nMy work is meaningful, inspiring, and rewarding.\nI’m respected globally for helping people build financial freedom and generational wealth with integrity.\n\nI’m the healthiest, strongest, happiest version of myself.",
+  "notes": "This future matters because it gives me the life I always knew I was capable of — one built on freedom, strength, discipline, and love.\n\nIt means my family thrives.\nIt means Harrison grows up empowered, happy and financially educated.\nIt means I get to live by the ocean, surf often, travel freely, and work with people who inspire me.\n\nIt means generational wealth, legacy, and independence — not just for me, but for everyone I help along the way.\n\nIt means I lived life by design, not by default.",
+  "focusWord": "Concur",
+  "weeklyMantra": "I am a confident, charismatic leader, driven by love, adventure, and success.",
+  "celebrationPlan": "A day off to surf / jetski, switch off, and enjoy the freedom I’m building.",
+  "theme": "night",
+  "ritualChecks": {
+    "review": false,
+    "plan": false,
+    "celebrate": false,
+    "energy": false
+  },
+  "ownerName": "Michael",
+  "goals": [
+    {
+      "id": "g_1765976228094_8341",
+      "text": "Fully automate my investment strategy across multiple asset classes by year-end.",
+      "area": "Wealth & Investing",
+      "timeframe": "1-year",
+      "priority": 5,
+      "status": "In progress",
+      "createdAt": "2025-12-17T12:57:08.094Z",
+      "why": "Automation removes friction so compounding works without decision fatigue.",
+      "nextStep": "Document my playbook and set up recurring transfers plus portfolio reviews.",
+      "reward": "Take a long weekend getaway when the automation stack runs for 90 days straight.",
+      "deadline": "2026-12-16",
+      "progress": 75
+    },
+    {
+      "id": "g_1765975907664_5682",
+      "text": "Surf three (3) iconic waves in January 2026: Uluwatu, Impossibles, Chicken Wings - Nusa Dua",
+      "area": "Adventure & Travel",
+      "timeframe": "30-day",
+      "priority": 5,
+      "status": "Not started",
+      "createdAt": "2025-12-17T12:51:47.664Z",
+      "why": "Chasing world-class waves keeps me inspired, humble and in flow.",
+      "nextStep": "Plan the travel windows, secure boards, and lock in surf coaching for each location.",
+      "reward": "Commission a custom board art piece after the fifth wave.",
+      "deadline": "2026-01-15",
+      "progress": 0
+    },
+    {
+      "id": "g_1765975728000_1814",
+      "text": "Build $250,000 per year in passive income.",
+      "area": "Wealth & Investing",
+      "timeframe": "1-year",
+      "priority": 5,
+      "status": "In progress",
+      "createdAt": "2025-12-17T12:48:48.000Z",
+      "why": "Passive income creates total freedom for travel, experiences and family time.",
+      "nextStep": "Model my income strategy and set quarterly acquisition targets.",
+      "reward": "Celebrate each major milestone with a special experience or dinner.",
+      "deadline": "2026-12-16",
+      "progress": 70
+    },
+    {
+      "id": "g_1765975672060_4315",
+      "text": "Build and maintain an 85kg lean, muscular, strong, high-energy body",
+      "area": "Health & Energy",
+      "timeframe": "90-day",
+      "priority": 5,
+      "status": "In progress",
+      "createdAt": "2025-12-17T12:47:52.060Z",
+      "why": "When I feel strong and energetic, everything else in life gets easier.",
+      "nextStep": "Block out regular training times in my calendar 3-4 times per week and stick to them.",
+      "reward": "Buy myself new gear or book a bali trip to surf session after 8 weeks of consistency.",
+      "deadline": "2026-03-16",
+      "progress": 80
+    }
+  ]
+}
