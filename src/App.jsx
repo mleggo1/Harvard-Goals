@@ -94,6 +94,76 @@ const GOAL_TEMPLATES = [
     reward: "Take a recovery weekend once I hit the halfway point."
   },
   {
+    id: "health-strength-training",
+    area: "Health & Energy",
+    text: "I strength train 3–4 times per week to build and maintain muscle, strength, and long-term independence.",
+    timeframe: "1-year",
+    priority: 5,
+    why: "Strength is one of the strongest predictors of longevity. It protects against injury, metabolic decline, and loss of independence as I age. Maintaining muscle improves insulin sensitivity, bone density, hormone health, and overall resilience for life, sport, and work.",
+    nextStep: "Block out 3-4 training sessions per week in my calendar and commit to showing up.",
+    reward: "Upgrade my training equipment or book a session with a coach after 12 weeks of consistency."
+  },
+  {
+    id: "health-sleep",
+    area: "Health & Energy",
+    text: "I average 7.5–8.5 hours of high-quality sleep per night with a consistent bedtime and wake time.",
+    timeframe: "90-day",
+    priority: 5,
+    why: "Sleep governs hormones, fat loss, muscle growth, mood, cognitive performance, and long-term health. Poor sleep undermines every other goal, while consistent, high-quality sleep accelerates recovery, decision-making, and energy.",
+    nextStep: "Set a consistent bedtime and wake time, create a pre-sleep routine, and track sleep quality.",
+    reward: "Invest in quality sleep accessories (blackout curtains, better mattress, etc.) after 30 days of consistency."
+  },
+  {
+    id: "health-sauna-hot-tub",
+    area: "Health & Energy",
+    text: "I use sauna or hot tub 3–5 times per week for 15–30 minutes to support cardiovascular health, recovery, and stress reduction.",
+    timeframe: "90-day",
+    priority: 4,
+    why: "Regular heat exposure improves cardiovascular function, reduces stress, enhances recovery, and is strongly associated with increased longevity. It delivers high health returns with low risk when used consistently.",
+    nextStep: "Identify local sauna/hot tub access and schedule 3-5 sessions per week.",
+    reward: "Book a spa day or upgrade my home recovery setup after 8 weeks of consistency."
+  },
+  {
+    id: "health-walking",
+    area: "Health & Energy",
+    text: "I walk daily, averaging 8,000–10,000 steps to support cardiovascular health, glucose control, and mental clarity.",
+    timeframe: "90-day",
+    priority: 4,
+    why: "Walking improves insulin sensitivity, reduces stress, supports heart health, and enhances recovery without adding fatigue. It compounds daily and supports long-term health more reliably than most high-intensity interventions.",
+    nextStep: "Set up step tracking, plan daily walking routes, and commit to hitting 8,000-10,000 steps daily.",
+    reward: "Buy quality walking shoes or plan a scenic walking adventure after 30 days of consistency."
+  },
+  {
+    id: "health-nutrition",
+    area: "Health & Energy",
+    text: "I prioritise whole foods and consistently meet my daily protein intake to support muscle, recovery, energy, and metabolic health.",
+    timeframe: "90-day",
+    priority: 5,
+    why: "Nutrition provides the raw materials my body needs to build muscle, regulate hormones, stabilise blood sugar, and sustain energy. Adequate protein preserves lean mass as I age, supports recovery from training, and protects metabolic health. Whole foods outperform extreme diets by supporting long-term consistency, gut health, and overall resilience.",
+    nextStep: "Calculate my daily protein target, plan weekly meals, and prep whole food options.",
+    reward: "Book a cooking class or upgrade my kitchen equipment after 6 weeks of consistency."
+  },
+  {
+    id: "health-social-connection",
+    area: "Health & Energy",
+    text: "I regularly invest time in meaningful relationships and shared experiences that create connection and belonging.",
+    timeframe: "1-year",
+    priority: 4,
+    why: "Strong social connection is one of the most powerful predictors of lifespan and long-term wellbeing. Humans are wired for connection, and meaningful relationships reduce stress, improve mental health, and reinforce healthy habits.",
+    nextStep: "Schedule regular catch-ups with key relationships and plan shared experiences.",
+    reward: "Plan a special trip or experience with loved ones after consistent connection for 3 months."
+  },
+  {
+    id: "health-mission",
+    area: "Health & Energy",
+    text: "I live with a clear mission that guides my health, wealth, and lifestyle decisions — building strength, freedom, and legacy.",
+    timeframe: "1-year",
+    priority: 5,
+    why: "Mission provides direction and consistency when motivation fades. A clear sense of purpose aligns daily habits with long-term outcomes and turns discipline into a sustainable way of life rather than a short-term push.",
+    nextStep: "Define my mission statement and review it daily to guide decisions.",
+    reward: "Create a visual reminder of my mission (vision board, framed statement, etc.) after defining it clearly."
+  },
+  {
     id: "finance-passive-income",
     area: "Wealth & Investing",
     text: "Build $XX per year in passive income.",
@@ -316,6 +386,7 @@ export default function App() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [isCustomTimeframe, setIsCustomTimeframe] = useState(false);
   const [customTimeframeDays, setCustomTimeframeDays] = useState("");
+  const [isAddGoalCollapsed, setIsAddGoalCollapsed] = useState(false);
 
   const {
     vision10,
@@ -1131,7 +1202,7 @@ function applyTimeframe(value, options = {}) {
               </div>
             </article>
 
-            <article className="card card-add-goal">
+            <article className={`card card-add-goal ${isAddGoalCollapsed ? 'collapsed' : ''}`}>
               <header className="card-header">
                 <div>
                   <div className="card-title">
@@ -1140,7 +1211,16 @@ function applyTimeframe(value, options = {}) {
                   </div>
                   <p className="card-subtitle-inspire">What specific outcome will make your vision a reality?</p>
                 </div>
+                <button
+                  className="btn btn-ghost collapse-toggle"
+                  onClick={() => setIsAddGoalCollapsed(!isAddGoalCollapsed)}
+                  title={isAddGoalCollapsed ? "Expand to add a goal" : "Collapse to focus on goals board"}
+                >
+                  {isAddGoalCollapsed ? "▼ Expand" : "▲ Collapse"}
+                </button>
               </header>
+              {!isAddGoalCollapsed && (
+                <div className="card-add-goal-content">
               <div className="field">
                 <label>Need inspiration?</label>
                 <select value={selectedTemplateId} onChange={handleTemplateChange}>
@@ -1255,11 +1335,13 @@ function applyTimeframe(value, options = {}) {
                   />
                 </div>
               </div>
-              <div className="card-footer">
-                <button className="btn primary btn-save-goal" onClick={handleAddGoal}>
-                  ➕ Save Goal
-                </button>
-              </div>
+                <div className="card-footer">
+                  <button className="btn primary btn-save-goal" onClick={handleAddGoal}>
+                    ➕ Save Goal
+                  </button>
+                </div>
+                </div>
+              )}
             </article>
 
             <article className="card card-goal-board">
