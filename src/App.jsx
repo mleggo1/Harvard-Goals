@@ -357,6 +357,7 @@ export default function App() {
   const [isCustomTimeframe, setIsCustomTimeframe] = useState(false);
   const [customTimeframeDays, setCustomTimeframeDays] = useState("");
   const [isAddGoalCollapsed, setIsAddGoalCollapsed] = useState(false);
+  const [isVisionCollapsed, setIsVisionCollapsed] = useState(false);
 
   const {
     vision10,
@@ -1128,48 +1129,61 @@ function applyTimeframe(value, options = {}) {
 
         <main className="planner-grid">
           <section className="column">
-            <article className="card card-vision">
+            <article className={`card card-vision ${isVisionCollapsed ? 'collapsed' : ''}`}>
               <header className="card-header">
-                <div className="card-title">
-                  <span className="icon">🔭</span>
-                  <span>10+ YEAR VISION</span>
+                <div>
+                  <div className="card-title">
+                    <span className="icon">🔭</span>
+                    <span>10+ YEAR VISION</span>
+                  </div>
+                  <p>Describe the life you see when everything compounds in your favor.</p>
                 </div>
-                <p>Describe the life you see when everything compounds in your favor.</p>
+                <button
+                  className="btn btn-ghost collapse-toggle"
+                  onClick={() => setIsVisionCollapsed(!isVisionCollapsed)}
+                  title={isVisionCollapsed ? "Show vision section" : "Hide vision section"}
+                >
+                  {isVisionCollapsed ? "Show" : "Hide"}
+                </button>
               </header>
-              <div className="field">
-                <label>Your vivid description</label>
-                <textarea
-                  value={vision10}
-                  onChange={(e) => {
-                    updatePlannerField("vision10", e.target.value);
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                  onInput={(e) => {
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                  placeholder="It's 2035. I'm..."
-                  rows={1}
-                />
-              </div>
-              <div className="field">
-                <label>Why it matters</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => {
-                    updatePlannerField("notes", e.target.value);
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                  onInput={(e) => {
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${e.target.scrollHeight}px`;
-                  }}
-                  placeholder="This future matters because..."
-                  rows={1}
-                />
-              </div>
+              {!isVisionCollapsed && (
+                <div>
+                  <div className="field">
+                    <label>Your vivid description</label>
+                    <textarea
+                      value={vision10}
+                      onChange={(e) => {
+                        updatePlannerField("vision10", e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      onInput={(e) => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      placeholder="It's 2035. I'm..."
+                      rows={1}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Why it matters</label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => {
+                        updatePlannerField("notes", e.target.value);
+                        e.target.style.height = "auto";
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      onInput={(e) => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      placeholder="This future matters because..."
+                      rows={1}
+                    />
+                  </div>
+                </div>
+              )}
             </article>
 
             <article className={`card card-add-goal ${isAddGoalCollapsed ? 'collapsed' : ''}`}>
@@ -1184,9 +1198,9 @@ function applyTimeframe(value, options = {}) {
                 <button
                   className="btn btn-ghost collapse-toggle"
                   onClick={() => setIsAddGoalCollapsed(!isAddGoalCollapsed)}
-                  title={isAddGoalCollapsed ? "Expand to add a goal" : "Collapse to focus on goals board"}
+                  title={isAddGoalCollapsed ? "Show to add a goal" : "Hide to focus on goals board"}
                 >
-                  {isAddGoalCollapsed ? "▼ Expand" : "▲ Collapse"}
+                  {isAddGoalCollapsed ? "Show" : "Hide"}
                 </button>
               </header>
               {!isAddGoalCollapsed && (
