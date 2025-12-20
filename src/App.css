@@ -107,7 +107,70 @@ body::before {
   align-items: flex-end;
   gap: 8px;
   flex-shrink: 0;
-  margin-bottom: 5px;
+  flex-wrap: wrap;
+  flex: 1;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+}
+
+.big5-shortcut-btn {
+  font-size: 12px !important;
+  padding: 7px 14px !important;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 146, 60, 0.15)) !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+  transition: all 0.3s ease !important;
+  position: relative;
+  overflow: hidden;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+.big5-shortcut-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(148, 163, 184, 0.1) !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+}
+
+.big5-shortcut-btn:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.big5-shortcut-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.big5-shortcut-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.3) !important;
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 146, 60, 0.25)) !important;
+}
+
+.big5-shortcut-btn:hover::before {
+  left: 100%;
+}
+
+[data-theme="day"] .big5-shortcut-btn {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(251, 146, 60, 0.2)) !important;
+  border-color: rgba(251, 191, 36, 0.5) !important;
+}
+
+[data-theme="day"] .big5-shortcut-btn:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.35), rgba(251, 146, 60, 0.3)) !important;
+  border-color: rgba(251, 191, 36, 0.7) !important;
 }
 
 .app-hero::before {
@@ -197,6 +260,7 @@ body::before {
   width: 100%;
 }
 
+
 .planner-owner {
   display: flex;
   flex-direction: column;
@@ -253,10 +317,7 @@ body::before {
 }
 
 .file-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex: 1;
+  display: contents;
 }
 
 .file-actions label {
@@ -1780,6 +1841,32 @@ body::before {
   .goal-card {
     padding: 12px !important;
   }
+
+  .planner-owner-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-top-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+
+  .big5-shortcut-btn {
+    font-size: 11px !important;
+    padding: 6px 12px !important;
+  }
+
+  .footer-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .btn-footer-reset {
+    align-self: flex-end;
+  }
 }
 
 .goal-footer {
@@ -2058,6 +2145,47 @@ body::before {
   border-radius: 18px;
   border: 1px solid var(--border);
   background: rgba(15, 23, 42, 0.25);
+  transition: all 0.3s ease;
+}
+
+.big3-card-clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.big3-card-clickable:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: rgba(15, 23, 42, 0.35);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2);
+}
+
+.big3-card-clickable:active {
+  transform: translateY(0);
+}
+
+.big3-card-clickable::after {
+  content: "👆";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.big3-card-clickable:hover::after {
+  opacity: 0.6;
+}
+
+[data-theme="day"] .big3-card-clickable {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="day"] .big3-card-clickable:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15);
 }
 
 .badge {
@@ -2914,10 +3042,24 @@ body::before {
   0%, 100% {
     background-color: transparent;
     box-shadow: 0 4px 16px rgba(56, 189, 248, 0);
+    border-color: var(--border);
   }
   50% {
     background-color: rgba(56, 189, 248, 0.2);
     box-shadow: 0 8px 32px rgba(56, 189, 248, 0.4);
+    border-color: var(--accent);
+  }
+}
+
+/* Section highlight animation */
+@keyframes highlightSection {
+  0%, 100% {
+    background-color: transparent;
+    box-shadow: 0 4px 16px rgba(251, 191, 36, 0);
+  }
+  50% {
+    background-color: rgba(251, 191, 36, 0.15);
+    box-shadow: 0 8px 32px rgba(251, 191, 36, 0.3);
   }
 }
 
@@ -2967,10 +3109,49 @@ body::before {
   gap: 8px;
 }
 
+.footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.btn-footer-reset {
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.btn-footer-reset:hover {
+  opacity: 1;
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.btn-footer-reset {
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.btn-footer-reset:hover {
+  opacity: 1;
+}
+
 .app-footer {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 8px;
   color: var(--text-muted);
   font-size: 13px;

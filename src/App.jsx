@@ -591,6 +591,35 @@ export default function App() {
     updateGoal(id, { archived: false });
   }
 
+  function scrollToBig5() {
+    const big5Section = document.getElementById('big5-goals-section');
+    if (big5Section) {
+      big5Section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Add a highlight effect
+      big5Section.style.animation = 'highlightSection 2s ease-in-out';
+      setTimeout(() => {
+        big5Section.style.animation = '';
+      }, 2000);
+    } else {
+      // Fallback: scroll to the sidebar section
+      const sidebarSection = document.querySelector('.column-side');
+      if (sidebarSection) {
+        sidebarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  function scrollToGoal(goalId) {
+    const goalElement = document.querySelector(`[data-goal-id="${goalId}"]`);
+    if (goalElement) {
+      goalElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      goalElement.style.animation = 'highlightGoal 2s ease-in-out';
+      setTimeout(() => {
+        goalElement.style.animation = '';
+      }, 2000);
+    }
+  }
+
   function handleGoalDeadlineChange(goalId, deadlineValue) {
     if (!deadlineValue) {
       updateGoal(goalId, { deadline: "" });
@@ -1066,34 +1095,37 @@ function applyTimeframe(value, options = {}) {
                 />
               </div>
               <div className="hero-top-actions">
-                <div className="file-actions">
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={loadPlanJson}
-                    id="file-input"
-                    style={{ display: "none" }}
-                  />
-                  <label htmlFor="file-input" className="btn btn-ghost" title="Load a saved Goals Blueprint file">
-                    📂 Open
-                  </label>
-                  <button 
-                    className={`btn btn-ghost ${isOwnerDevice() ? "active" : ""}`}
-                    onClick={downloadPlanJson}
-                    title={isOwnerDevice() ? "Save your Goals Blueprint (saving enabled)" : "Save your Goals Blueprint and enable saving on this device"}
-                  >
-                    💾 {isOwnerDevice() ? "Save" : "Save & enable"}
-                  </button>
-                  <button className="btn btn-ghost" onClick={exportGoalsToPdf} title="Export to PDF">
-                    📄 PDF
-                  </button>
-                  <button className="btn btn-ghost" onClick={printPage} title="Print">
-                    🖨 Print
-                  </button>
-                  <button className="btn danger" onClick={clearAll} title="Reset all data">
-                    ♻ Reset
-                  </button>
-                </div>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={loadPlanJson}
+                  id="file-input"
+                  style={{ display: "none" }}
+                />
+                <label htmlFor="file-input" className="btn btn-ghost" title="Load a saved Goals Blueprint file">
+                  📂 Open
+                </label>
+                <button 
+                  className={`btn btn-ghost ${isOwnerDevice() ? "active" : ""}`}
+                  onClick={downloadPlanJson}
+                  title={isOwnerDevice() ? "Save your Goals Blueprint (saving enabled)" : "Save your Goals Blueprint and enable saving on this device"}
+                >
+                  💾 {isOwnerDevice() ? "Save" : "Save & enable"}
+                </button>
+                <button className="btn btn-ghost" onClick={exportGoalsToPdf} title="Export to PDF">
+                  📄 PDF
+                </button>
+                <button className="btn btn-ghost" onClick={printPage} title="Print">
+                  🖨 Print
+                </button>
+                <button
+                  className="btn btn-ghost big5-shortcut-btn"
+                  onClick={scrollToBig5}
+                  title={big5.length > 0 ? `Jump to Big 5 Goals (${big5.length} goals)` : "Jump to Big 5 Goals section"}
+                  disabled={big5.length === 0}
+                >
+                  🔥 Big 5 {big5.length > 0 && `(${big5.length})`}
+                </button>
                 <button
                   className="btn btn-ghost theme-toggle-btn"
                   onClick={() => updatePlannerField("theme", theme === "day" ? "night" : "day")}
@@ -1695,7 +1727,7 @@ function applyTimeframe(value, options = {}) {
               )}
             </article>
 
-            <article className="card">
+            <article id="big5-goals-section" className="card">
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🔥</span>
@@ -1710,7 +1742,12 @@ function applyTimeframe(value, options = {}) {
               ) : (
                 <div className="big3-list">
                   {big5.map((goal, index) => (
-                    <div key={goal.id} className="big3-card">
+                    <div 
+                      key={goal.id} 
+                      className="big3-card big3-card-clickable"
+                      onClick={() => scrollToGoal(goal.id)}
+                      title="Click to view this goal in detail"
+                    >
                       <div className="badge">#{index + 1}</div>
                       <div>
                         <h4>{goal.text}</h4>
@@ -1989,7 +2026,12 @@ function applyTimeframe(value, options = {}) {
           <div>
             Saved locally in your browser. Export or print anytime. Built for bold humans.
           </div>
-          <div>Inspired by the Harvard Goals Study · Educational use only.</div>
+          <div className="footer-actions">
+            <div>Inspired by the Harvard Goals Study · Educational use only.</div>
+            <button className="btn btn-ghost btn-footer-reset" onClick={clearAll} title="Reset all data">
+              ♻ Reset All
+            </button>
+          </div>
         </footer>
       </div>
     </div>
