@@ -2998,53 +2998,82 @@ body::before {
   print-color-adjust: exact;
   color-adjust: exact;
 
-  /* 1. Make hero container dark blue with white text for print - really pops! */
+  /* Remove grey backgrounds and shadows for print */
   .app-hero {
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #312e81 100%) !important;
-    border: 2px solid #1e40af !important;
-    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3) !important;
-    padding: 24px 20px !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 20px 0 !important;
     margin-bottom: 24px !important;
   }
 
+  .app-hero::before {
+    display: none !important;
+  }
+
   .app-hero .eyebrow {
-    color: #93c5fd !important;
+    color: #001f54 !important;
     font-weight: 700 !important;
   }
 
+  /* Make heading navy blue for print */
   .app-hero h1,
   .hero-title {
-    /* White text on dark blue - really pops! */
-    background: #ffffff !important;
+    background-image: none !important;
     -webkit-background-clip: unset !important;
-    -webkit-text-fill-color: #ffffff !important;
-    background-clip: unset !important;
-    color: #ffffff !important;
+    -webkit-text-fill-color: #001f54 !important;
+    color: #001f54 !important;
     animation: none !important;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+    filter: none !important;
+    text-shadow: none !important;
     font-size: clamp(28px, 3.5vw, 40px) !important;
     font-weight: 900 !important;
     letter-spacing: -0.02em !important;
     line-height: 1.15 !important;
     display: inline-block !important;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
   }
 
   .app-hero .hero-subhead {
-    color: #e0e7ff !important;
+    color: #1e293b !important;
     opacity: 1 !important;
   }
 
-  /* For day theme in print - same dark blue treatment */
+  /* For day theme in print - same treatment */
   [data-theme="day"] .app-hero {
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #312e81 100%) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
   [data-theme="day"] .app-hero h1,
   [data-theme="day"] .hero-title {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+    background-image: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #001f54 !important;
+    color: #001f54 !important;
+    animation: none !important;
+    filter: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Remove shadows from all elements */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  /* Remove grey backgrounds from cards */
+  .card,
+  .focus-card,
+  .goal-card {
+    background: white !important;
+    background-color: white !important;
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
   }
 
   /* 2. Prevent boxes from being cut off - move to next page */
