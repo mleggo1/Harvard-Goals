@@ -242,7 +242,9 @@ function hydrateGoal(goal) {
     nextStep: goal.nextStep ?? "",
     reward: goal.reward ?? "",
     deadline: goal.deadline ?? "",
-    progress: typeof goal.progress === "number" ? goal.progress : 0
+    progress: typeof goal.progress === "number" ? goal.progress : 0,
+    completedAt: goal.completedAt ?? "",
+    archived: goal.archived ?? false
   };
 }
 
@@ -358,6 +360,7 @@ export default function App() {
   const [customTimeframeDays, setCustomTimeframeDays] = useState("");
   const [isAddGoalCollapsed, setIsAddGoalCollapsed] = useState(false);
   const [isVisionCollapsed, setIsVisionCollapsed] = useState(false);
+  const [dueDateRange, setDueDateRange] = useState(30);
 
   const {
     vision10,
@@ -501,17 +504,56 @@ export default function App() {
 
   const momentumScore = Math.round((completionRate + averageProgress + ritualCompletion) / 3);
 
-  const big3 = useMemo(() => {
+  const big5 = useMemo(() => {
     return [...goals]
-      .filter((g) => g.priority >= 4)
+      .filter((g) => g.priority >= 4 && g.status !== "Done")
       .sort((a, b) => {
         if (b.priority === a.priority) {
           return (b.progress || 0) - (a.progress || 0);
         }
         return b.priority - a.priority;
       })
-      .slice(0, 3);
+      .slice(0, 5);
   }, [goals]);
+
+  const completedGoals = useMemo(() => {
+    return [...goals]
+      .filter((g) => g.status === "Done" && !g.archived)
+      .sort((a, b) => {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : (a.deadline ? new Date(a.deadline).getTime() : 0);
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : (b.deadline ? new Date(b.deadline).getTime() : 0);
+        return dateB - dateA; // Most recently completed first
+      });
+  }, [goals]);
+
+  const archivedGoals = useMemo(() => {
+    return [...goals]
+      .filter((g) => g.status === "Done" && g.archived)
+      .sort((a, b) => {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : (a.deadline ? new Date(a.deadline).getTime() : 0);
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : (b.deadline ? new Date(b.deadline).getTime() : 0);
+        return dateB - dateA;
+      });
+  }, [goals]);
+
+  const goalsDueSoon = useMemo(() => {
+    const today = startOfToday();
+    const targetDate = addDays(today, dueDateRange);
+    
+    return [...goals]
+      .filter((g) => {
+        if (g.status === "Done" || !g.deadline) return false;
+        const deadline = new Date(g.deadline);
+        if (Number.isNaN(deadline.getTime())) return false;
+        deadline.setHours(0, 0, 0, 0);
+        return deadline.getTime() <= targetDate.getTime() && deadline.getTime() >= today.getTime();
+      })
+      .sort((a, b) => {
+        const daysA = calculateDaysRemaining(a.deadline) ?? Infinity;
+        const daysB = calculateDaysRemaining(b.deadline) ?? Infinity;
+        return daysA - daysB; // Soonest first
+      });
+  }, [goals, dueDateRange]);
 
   function updatePlannerField(field, value) {
     setPlanner((prev) => ({ ...prev, [field]: value }));
@@ -539,6 +581,14 @@ export default function App() {
     }
     // For "Paused", keep current progress
     return currentProgress;
+  }
+
+  function archiveGoal(id) {
+    updateGoal(id, { archived: true });
+  }
+
+  function unarchiveGoal(id) {
+    updateGoal(id, { archived: false });
   }
 
   function handleGoalDeadlineChange(goalId, deadlineValue) {
@@ -845,7 +895,7 @@ function applyTimeframe(value, options = {}) {
     const foundation = [
       `Planner owner: ${ownerName || "—"}`,
       `Focus word: ${focusWord || "—"}`,
-      `Weekly mantra: ${weeklyMantra || "—"}`,
+      `Daily mantra: ${weeklyMantra || "—"}`,
       `Celebration plan: ${celebrationPlan || "—"}`
     ];
     foundation.forEach((line) => {
@@ -1049,7 +1099,7 @@ function applyTimeframe(value, options = {}) {
                   onClick={() => updatePlannerField("theme", theme === "day" ? "night" : "day")}
                   title={`Switch to ${theme === "day" ? "night" : "day"} mode`}
                 >
-                  {theme === "day" ? "🌙 Night" : "☀ Day"}
+                  {theme === "day" ? "☀ Day" : "🌙 Night"}
                 </button>
               </div>
             </div>
@@ -1086,9 +1136,9 @@ function applyTimeframe(value, options = {}) {
             <article className="focus-card">
               <div className="card-title">
                 <span className="icon">🧭</span>
-                <span>WEEKLY MANTRA</span>
+                <span>DAILY MANTRA</span>
               </div>
-              <p>Write a short mantra you'll read each Monday and before big meetings.</p>
+              <p>Write a short mantra you'll read each day.</p>
               <textarea
                 value={weeklyMantra}
                 onChange={(e) => {
@@ -1362,7 +1412,7 @@ function applyTimeframe(value, options = {}) {
                     // Calculate goal number based on all goals, not just filtered
                     const goalNumber = goals.findIndex(g => g.id === goal.id) + 1;
                     return (
-                    <article key={goal.id} className="goal-card">
+                    <article key={goal.id} className="goal-card" data-goal-id={goal.id}>
                       <div className="goal-card__header">
                         <div className="goal-header-main">
                           <div className="goal-header-top">
@@ -1473,7 +1523,12 @@ function applyTimeframe(value, options = {}) {
                             onChange={(e) => {
                               const newStatus = e.target.value;
                               const newProgress = getProgressFromStatus(newStatus, goal.progress);
-                              updateGoal(goal.id, { status: newStatus, progress: newProgress });
+                              const updates = { status: newStatus, progress: newProgress };
+                              // Add completedAt timestamp when marked as Done
+                              if (newStatus === "Done" && goal.status !== "Done") {
+                                updates.completedAt = new Date().toISOString();
+                              }
+                              updateGoal(goal.id, updates);
                             }}
                           >
                             {STATUS_OPTIONS.map((status) => (
@@ -1644,17 +1699,17 @@ function applyTimeframe(value, options = {}) {
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🔥</span>
-                  <span>Big 3 Goals This Year</span>
+                  <span>Big 5 Goals This Year</span>
                 </div>
                 <p>These get protected time every week. Nothing jumps the queue.</p>
               </header>
-              {big3.length === 0 ? (
+              {big5.length === 0 ? (
                 <div className="empty-state">
-                  Add a few goals with priority 4 or 5 to see your Big 3.
+                  Add a few goals with priority 4 or 5 to see your Big 5.
                 </div>
               ) : (
                 <div className="big3-list">
-                  {big3.map((goal, index) => (
+                  {big5.map((goal, index) => (
                     <div key={goal.id} className="big3-card">
                       <div className="badge">#{index + 1}</div>
                       <div>
@@ -1669,6 +1724,220 @@ function applyTimeframe(value, options = {}) {
                 </div>
               )}
             </article>
+
+            <article className="card card-due-soon">
+              <header className="card-header">
+                <div className="card-title">
+                  <span className="icon">⏰</span>
+                  <span>Goals Due Soon</span>
+                </div>
+                <p>Track goals with upcoming deadlines. Adjust the timeframe to see what's coming up.</p>
+              </header>
+              <div className="due-date-controls">
+                <div className="slider-container">
+                  <label className="slider-label">
+                    <span>Show goals due in the next:</span>
+                    <span className="slider-value">{dueDateRange} {dueDateRange === 1 ? 'day' : 'days'}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="90"
+                    value={dueDateRange}
+                    onChange={(e) => setDueDateRange(Number(e.target.value))}
+                    className="due-date-slider"
+                  />
+                  <div className="slider-labels">
+                    <span>0</span>
+                    <span>30</span>
+                    <span>60</span>
+                    <span>90</span>
+                  </div>
+                </div>
+              </div>
+              {goalsDueSoon.length === 0 ? (
+                <div className="empty-state">
+                  {dueDateRange === 0 
+                    ? "No goals due today. Great work staying ahead!"
+                    : `No goals due in the next ${dueDateRange} days. You're on track!`}
+                </div>
+              ) : (
+                <div className="due-soon-goals-list">
+                  <div className="due-soon-header">
+                    <span className="due-count-badge">{goalsDueSoon.length} {goalsDueSoon.length === 1 ? 'goal' : 'goals'} due</span>
+                  </div>
+                  {goalsDueSoon.map((goal) => {
+                    const daysRemaining = calculateDaysRemaining(goal.deadline);
+                    const isOverdue = daysRemaining !== null && daysRemaining < 0;
+                    const isUrgent = daysRemaining !== null && daysRemaining <= 7;
+                    return (
+                      <div 
+                        key={goal.id} 
+                        className={`due-soon-goal-card ${isOverdue ? 'overdue' : ''} ${isUrgent ? 'urgent' : ''}`}
+                        onClick={() => {
+                          // Scroll to the goal in the goals board
+                          const goalElement = document.querySelector(`[data-goal-id="${goal.id}"]`);
+                          if (goalElement) {
+                            goalElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            goalElement.style.animation = 'highlightGoal 2s ease-in-out';
+                            setTimeout(() => {
+                              goalElement.style.animation = '';
+                            }, 2000);
+                          }
+                        }}
+                      >
+                        <div className="due-soon-goal-header">
+                          <div className="due-soon-badge">
+                            {isOverdue ? '⚠️' : isUrgent ? '🔥' : '📅'}
+                          </div>
+                          <div className="due-soon-goal-content">
+                            <h4>{goal.text}</h4>
+                            <p>
+                              {goal.area} · {formatTimeframeLabel(goal.timeframe)}
+                            </p>
+                          </div>
+                          <div className="due-soon-days">
+                            {isOverdue ? (
+                              <span className="days-overdue">
+                                {Math.abs(daysRemaining)} days overdue
+                              </span>
+                            ) : daysRemaining === 0 ? (
+                              <span className="days-today">Due today!</span>
+                            ) : daysRemaining === 1 ? (
+                              <span className="days-urgent">Due tomorrow</span>
+                            ) : (
+                              <span className={isUrgent ? 'days-urgent' : 'days-normal'}>
+                                {daysRemaining} days left
+                              </span>
+                            )}
+                            <div className="due-date-display">
+                              {goal.deadline && new Date(goal.deadline).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="due-soon-goal-footer">
+                          <div className="due-soon-progress">
+                            <span>Progress: {goal.progress}%</span>
+                            <div className="due-progress-bar">
+                              <div 
+                                className="due-progress-fill"
+                                style={{ width: `${goal.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                          {goal.priority >= 4 && (
+                            <span className="due-priority-badge">Priority {goal.priority}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </article>
+
+            {completedGoals.length > 0 && (
+              <article className="card card-completed">
+                <header className="card-header">
+                  <div className="card-title">
+                    <span className="icon">🎉</span>
+                    <span>Completed Goals</span>
+                  </div>
+                  <p>Celebrate your wins! Time to reward yourself for these achievements.</p>
+                </header>
+                <div className="completed-goals-list">
+                  {completedGoals.map((goal) => (
+                    <div key={goal.id} className="completed-goal-card">
+                      <div className="completed-goal-header">
+                        <div className="completed-badge">✓</div>
+                        <div className="completed-goal-content">
+                          <h4>{goal.text}</h4>
+                          <p>
+                            {goal.area} · {formatTimeframeLabel(goal.timeframe)}
+                          </p>
+                        </div>
+                        <div className="completed-actions">
+                          <div className="completed-date">
+                            {goal.completedAt 
+                              ? new Date(goal.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                              : goal.deadline 
+                                ? new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                : 'Completed'}
+                          </div>
+                          <button 
+                            className="btn btn-ghost btn-archive"
+                            onClick={() => archiveGoal(goal.id)}
+                            title="Archive this goal"
+                          >
+                            📦 Archive
+                          </button>
+                        </div>
+                      </div>
+                      {goal.reward && goal.reward.trim() && (
+                        <div className="completed-reward">
+                          <div className="reward-header">
+                            <span className="reward-icon">🎁</span>
+                            <span className="reward-label">Your Reward:</span>
+                          </div>
+                          <div className="reward-text">{goal.reward}</div>
+                          <div className="reward-cta">Time to celebrate! 🎊</div>
+                        </div>
+                      )}
+                      {(!goal.reward || !goal.reward.trim()) && (
+                        <div className="completed-reward-empty">
+                          <span className="reward-icon">💭</span>
+                          <span>No reward planned yet. What will you do to celebrate this achievement?</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            )}
+
+            {archivedGoals.length > 0 && (
+              <article className="card card-archived">
+                <header className="card-header">
+                  <div className="card-title">
+                    <span className="icon">📦</span>
+                    <span>Archived Goals</span>
+                  </div>
+                  <p>Your completed goals history. Keep these for inspiration and reflection.</p>
+                </header>
+                <div className="archived-goals-list">
+                  {archivedGoals.map((goal) => (
+                    <div key={goal.id} className="archived-goal-card">
+                      <div className="archived-goal-header">
+                        <div className="archived-badge">📦</div>
+                        <div className="archived-goal-content">
+                          <h4>{goal.text}</h4>
+                          <p>
+                            {goal.area} · {formatTimeframeLabel(goal.timeframe)}
+                            {goal.completedAt && (
+                              <span className="archived-date">
+                                {' · Completed '}
+                                {new Date(goal.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <button 
+                          className="btn btn-ghost btn-unarchive"
+                          onClick={() => unarchiveGoal(goal.id)}
+                          title="Restore this goal"
+                        >
+                          ↺ Restore
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            )}
 
             <article className="card">
               <header className="card-header">
@@ -1708,9 +1977,9 @@ function applyTimeframe(value, options = {}) {
                 </div>
               </header>
               <ul className="prompt-list">
-                <li>Which goal gets a decisive action this week?</li>
-                <li>Does my calendar reflect my Big 3 priorities?</li>
-                <li>What will I say no to so these commitments win?</li>
+                <li>What's the one goal I'll take action on this week?</li>
+                <li>Am I protecting enough time for my top 5 goals?</li>
+                <li>What do I need to say no to so my goals can win?</li>
               </ul>
             </article>
           </section>
