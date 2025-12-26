@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import "./App.css";
+import ConquerJournal from "./ConquerJournal.jsx";
 
 const STORAGE_KEY = "harvard_goals_v2";
 const OWNER_DEVICE_KEY = "harvard_goals_owner_device";
@@ -345,6 +346,7 @@ function formatTimeframeLabel(value) {
 }
 
 export default function App() {
+  const [currentView, setCurrentView] = useState('goals'); // 'goals' or 'conquer'
   const [planner, setPlanner] = useState(() => loadInitialState());
   const [filterTimeframe, setFilterTimeframe] = useState("all");
   const [newGoalText, setNewGoalText] = useState("");
@@ -1074,12 +1076,27 @@ function applyTimeframe(value, options = {}) {
     `${CUSTOM_TIMEFRAME_PREFIX}${customTimeframeDays || DEFAULT_CUSTOM_TIMEFRAME_DAYS}`
   );
 
+  // Show Conquer Journal if that view is selected
+  if (currentView === 'conquer') {
+    return <ConquerJournal onBack={() => setCurrentView('goals')} theme={theme} goals={planner.goals} />;
+  }
+
   return (
     <div className={`app-root ${theme}-skin`}>
         <div className="app-shell">
         <header className="app-hero">
           <div>
-            <p className="eyebrow">Harvard Goals Method</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <p className="eyebrow" style={{ margin: 0 }}>Harvard Goals Method</p>
+              <button 
+                className="btn btn-ghost"
+                onClick={() => setCurrentView('conquer')}
+                title="Open Conquer Journal"
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+              >
+                📔 Conquer Journal
+              </button>
+            </div>
             <h1 className="hero-title">{ownerName ? `🚀 ${ownerName}'s Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}` : `🚀 Your Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}`}</h1>
             <p className="hero-subhead">
               Turn your biggest dreams into a clear plan. Write down your goals, set your focus, take action every day, and share your progress with people who support you.
