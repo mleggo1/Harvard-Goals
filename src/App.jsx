@@ -2,6 +2,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import "./App.css";
 import ConquerJournal from "./ConquerJournal.jsx";
+import { 
+  autoSave, 
+  initialize, 
+  getCurrentSavePath, 
+  changeSaveLocation,
+  loadFromFile,
+  saveToFile,
+  isFileSystemAvailable,
+  saveToIDB,
+  saveFileHandle
+} from "./fileStorage.js";
 
 const STORAGE_KEY = "harvard_goals_v2";
 const OWNER_DEVICE_KEY = "harvard_goals_owner_device";
@@ -262,30 +273,29 @@ function setOwnerDevice(value) {
   }
 }
 
-function loadInitialState() {
-  // Only load saved data if this is the owner's device
-  if (!isOwnerDevice()) {
-    return DEFAULT_STATE;
+function loadInitialStateSync() {
+  // Fallback to localStorage for backward compatibility
+  if (isOwnerDevice()) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          ...DEFAULT_STATE,
+          ...parsed,
+          ritualChecks: {
+            ...DEFAULT_STATE.ritualChecks,
+            ...(parsed.ritualChecks || {})
+          },
+          goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
+        };
+      }
+    } catch {
+      // Ignore errors
+    }
   }
   
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return DEFAULT_STATE;
-    }
-    const parsed = JSON.parse(raw);
-    return {
-      ...DEFAULT_STATE,
-      ...parsed,
-      ritualChecks: {
-        ...DEFAULT_STATE.ritualChecks,
-        ...(parsed.ritualChecks || {})
-      },
-      goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
-    };
-  } catch {
-    return DEFAULT_STATE;
-  }
+  return DEFAULT_STATE;
 }
 
 function startOfToday() {
@@ -347,7 +357,7 @@ function formatTimeframeLabel(value) {
 
 export default function App() {
   const [currentView, setCurrentView] = useState('goals'); // 'goals' or 'conquer'
-  const [planner, setPlanner] = useState(() => loadInitialState());
+  const [planner, setPlanner] = useState(() => loadInitialStateSync());
   const [filterTimeframe, setFilterTimeframe] = useState("all");
   const [newGoalText, setNewGoalText] = useState("");
   const [newGoalArea, setNewGoalArea] = useState(AREAS[1]);
@@ -363,6 +373,12 @@ export default function App() {
   const [isAddGoalCollapsed, setIsAddGoalCollapsed] = useState(false);
   const [isVisionCollapsed, setIsVisionCollapsed] = useState(false);
   const [dueDateRange, setDueDateRange] = useState(30);
+  
+  // File storage state
+  const [savePath, setSavePath] = useState(() => getCurrentSavePath());
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const {
     vision10,
@@ -376,12 +392,62 @@ export default function App() {
     ownerName
   } = planner;
 
+  // Initialize on mount
   useEffect(() => {
-    // Only save data if this is the owner's device
-    if (isOwnerDevice()) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(planner));
+    async function init() {
+      try {
+        const initResult = await initialize();
+        
+        // Load data from file storage if available
+        if (initResult && initResult.data) {
+          const parsed = initResult.data;
+          setPlanner({
+            ...DEFAULT_STATE,
+            ...parsed,
+            ritualChecks: {
+              ...DEFAULT_STATE.ritualChecks,
+              ...(parsed.ritualChecks || {})
+            },
+            goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
+          });
+        }
+        
+        // Check if we need to prompt for save location
+        const currentPath = getCurrentSavePath();
+        if (currentPath === 'Browser Storage (Not set)' && isFileSystemAvailable()) {
+          setShowSavePrompt(true);
+        }
+        
+        setSavePath(getCurrentSavePath());
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Initialization error:', error);
+        setSavePath(getCurrentSavePath());
+        setIsInitialized(true);
+      }
     }
-  }, [planner]);
+    init();
+  }, []);
+
+  // Auto-save when planner changes
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    setSaveStatus('saving');
+    autoSave(planner, (result) => {
+      if (result.success) {
+        setSaveStatus('saved');
+        setSavePath(result.path || getCurrentSavePath());
+        // Clear saved status after 2 seconds
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else if (result.cancelled) {
+        setSaveStatus('idle');
+      } else {
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    });
+  }, [planner, isInitialized]);
 
   // Auto-resize all textareas to show ALL content - print will capture what's visible on screen
   useEffect(() => {
@@ -426,14 +492,48 @@ export default function App() {
     document.documentElement.dataset.theme = theme === "day" ? "day" : "night";
   }, [theme]);
 
-  // Auto-resize goal title textareas when goals change
+  // Auto-resize goal title textareas when goals change or view changes
   useEffect(() => {
-    const textareas = document.querySelectorAll('.goal-title-input');
-    textareas.forEach((textarea) => {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
-    });
-  }, [goals]);
+    if (currentView !== 'goals') return; // Only resize when on Goals view
+    
+    const resizeGoalTextareas = () => {
+      // Resize goal title inputs
+      const titleInputs = document.querySelectorAll('.goal-title-input');
+      titleInputs.forEach((textarea) => {
+        textarea.style.height = 'auto';
+        const scrollHeight = textarea.scrollHeight;
+        textarea.style.height = `${scrollHeight}px`;
+        textarea.style.minHeight = `${scrollHeight}px`;
+        textarea.style.maxHeight = 'none';
+        textarea.style.overflow = 'visible';
+        textarea.style.overflowY = 'visible';
+      });
+      
+      // Resize goal grid textareas (Why, Next Step, Reward)
+      const goalGridTextareas = document.querySelectorAll('.goal-grid textarea');
+      goalGridTextareas.forEach((textarea) => {
+        textarea.style.height = 'auto';
+        const scrollHeight = textarea.scrollHeight;
+        textarea.style.height = `${scrollHeight}px`;
+        textarea.style.minHeight = `${scrollHeight}px`;
+        textarea.style.maxHeight = 'none';
+        textarea.style.overflow = 'visible';
+        textarea.style.overflowY = 'visible';
+      });
+    };
+    
+    // Resize immediately and after delays to ensure DOM is ready
+    resizeGoalTextareas();
+    const timeout = setTimeout(resizeGoalTextareas, 50);
+    const timeout2 = setTimeout(resizeGoalTextareas, 200);
+    const timeout3 = setTimeout(resizeGoalTextareas, 500);
+    
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(timeout2);
+      clearTimeout(timeout3);
+    };
+  }, [goals, currentView]);
 
   // Auto-resize focus card textareas to match content
   useEffect(() => {
@@ -849,12 +949,93 @@ function applyTimeframe(value, options = {}) {
     window.print();
   }
 
-  function downloadPlanJson() {
-    // Enable saving when downloading
-    if (!isOwnerDevice()) {
-      setOwnerDevice(true);
+  async function handleChangeSaveLocation() {
+    setSaveStatus('saving');
+    const result = await changeSaveLocation(planner);
+    if (result.success) {
+      setSavePath(result.path || getCurrentSavePath());
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } else if (result.cancelled) {
+      setSaveStatus('idle');
+    } else {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     }
-    
+  }
+
+  async function handleInitialSaveLocation() {
+    setSaveStatus('saving');
+    try {
+      if (!isFileSystemAvailable()) {
+        // Use IndexedDB
+        await saveToIDB(planner);
+        setSavePath('Browser Storage');
+        setSaveStatus('saved');
+        setShowSavePrompt(false);
+        setTimeout(() => setSaveStatus('idle'), 2000);
+        return;
+      }
+
+      // Prompt for file location
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'goals-blueprint.json',
+        types: [{
+          description: 'Goals Blueprint',
+          accept: { 'application/json': ['.json'] }
+        }]
+      });
+
+      // Write to file
+      const writable = await handle.createWritable();
+      await writable.write(JSON.stringify(planner, null, 2));
+      await writable.close();
+
+      // Also save to IndexedDB
+      await saveToIDB(planner);
+
+      // Update stored handle
+      saveFileHandle(handle);
+      setSavePath(handle.name);
+      setSaveStatus('saved');
+      setShowSavePrompt(false);
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        setSaveStatus('idle');
+      } else {
+        // Fallback to IndexedDB
+        await saveToIDB(planner);
+        setSavePath('Browser Storage');
+        setSaveStatus('saved');
+        setShowSavePrompt(false);
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      }
+    }
+  }
+
+  async function handleOpenFile() {
+    try {
+      const loaded = await loadFromFile();
+      if (loaded) {
+        setPlanner({
+          ...DEFAULT_STATE,
+          ...loaded,
+          ritualChecks: {
+            ...DEFAULT_STATE.ritualChecks,
+            ...(loaded.ritualChecks || {})
+          },
+          goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
+        });
+        setSavePath(getCurrentSavePath());
+      }
+    } catch (error) {
+      alert("Error loading file. Please make sure it's a valid Goals Blueprint file.");
+    }
+  }
+
+  function downloadPlanJson() {
+    // Fallback download for manual backup
     const blob = new Blob([JSON.stringify(planner, null, 2)], {
       type: "application/json"
     });
@@ -871,11 +1052,9 @@ function applyTimeframe(value, options = {}) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const loaded = JSON.parse(e.target.result);
-        // Enable saving when loading a file
-        setOwnerDevice(true);
         setPlanner({
           ...DEFAULT_STATE,
           ...loaded,
@@ -885,6 +1064,17 @@ function applyTimeframe(value, options = {}) {
           },
           goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
         });
+        // Save to current location
+        await saveToFile({
+          ...DEFAULT_STATE,
+          ...loaded,
+          ritualChecks: {
+            ...DEFAULT_STATE.ritualChecks,
+            ...(loaded.ritualChecks || {})
+          },
+          goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
+        });
+        setSavePath(getCurrentSavePath());
         // Reset file input
         event.target.value = "";
       } catch (error) {
@@ -1083,6 +1273,57 @@ function applyTimeframe(value, options = {}) {
 
   return (
     <div className={`app-root ${theme}-skin`}>
+      {/* Initial save location prompt */}
+      {showSavePrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-primary)',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '100%',
+            border: '2px solid var(--border)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 700 }}>
+              Choose Save Location
+            </h3>
+            <p style={{ margin: '0 0 20px', fontSize: '14px', color: 'var(--text-muted)' }}>
+              Select where you'd like to save your Goals Blueprint. Your work will auto-save to this location.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setShowSavePrompt(false);
+                  // Use IndexedDB as fallback
+                }}
+              >
+                Use Browser Storage
+              </button>
+              <button
+                className="btn primary"
+                onClick={handleInitialSaveLocation}
+                disabled={saveStatus === 'saving'}
+              >
+                {saveStatus === 'saving' ? 'Saving...' : 'Choose Location'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         <div className="app-shell">
         <header className="app-hero">
           <div>
@@ -1112,6 +1353,13 @@ function applyTimeframe(value, options = {}) {
                 />
               </div>
               <div className="hero-top-actions">
+                <button 
+                  className="btn btn-ghost" 
+                  onClick={handleOpenFile}
+                  title="Open a Goals Blueprint file"
+                >
+                  📂 Open
+                </button>
                 <input
                   type="file"
                   accept=".json"
@@ -1119,15 +1367,18 @@ function applyTimeframe(value, options = {}) {
                   id="file-input"
                   style={{ display: "none" }}
                 />
-                <label htmlFor="file-input" className="btn btn-ghost" title="Load a saved Goals Blueprint file">
-                  📂 Open
+                <label htmlFor="file-input" className="btn btn-ghost" title="Import from file (fallback)">
+                  📥 Import
                 </label>
                 <button 
-                  className={`btn btn-ghost ${isOwnerDevice() ? "active" : ""}`}
-                  onClick={downloadPlanJson}
-                  title={isOwnerDevice() ? "Save your Goals Blueprint (saving enabled)" : "Save your Goals Blueprint and enable saving on this device"}
+                  className="btn btn-ghost" 
+                  onClick={handleChangeSaveLocation}
+                  title="Change where your file is saved"
                 >
-                  💾 {isOwnerDevice() ? "Save" : "Save & enable"}
+                  📁 Change Location
+                </button>
+                <button className="btn btn-ghost" onClick={downloadPlanJson} title="Download backup copy">
+                  💾 Download
                 </button>
                 <button className="btn btn-ghost" onClick={exportGoalsToPdf} title="Export to PDF">
                   📄 PDF
@@ -1150,6 +1401,40 @@ function applyTimeframe(value, options = {}) {
                 >
                   {theme === "day" ? "☀ Day" : "🌙 Night"}
                 </button>
+              </div>
+            </div>
+            {/* Save status and path display */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginTop: '12px',
+              padding: '8px 12px',
+              background: 'rgba(148, 163, 184, 0.1)',
+              borderRadius: '8px',
+              fontSize: '12px',
+              flexWrap: 'wrap',
+              gap: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Saved to:</span>
+                <span style={{ 
+                  color: 'var(--text-primary)', 
+                  fontWeight: 500,
+                  wordBreak: 'break-word',
+                  maxWidth: '400px'
+                }}>
+                  {savePath}
+                </span>
+                {saveStatus === 'saving' && (
+                  <span style={{ color: 'var(--accent)', fontSize: '11px' }}>💾 Saving...</span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span style={{ color: '#10b981', fontSize: '11px' }}>✓ Saved</span>
+                )}
+                {saveStatus === 'error' && (
+                  <span style={{ color: '#f87171', fontSize: '11px' }}>⚠ Error saving</span>
+                )}
               </div>
             </div>
           </div>
@@ -1548,13 +1833,23 @@ function applyTimeframe(value, options = {}) {
                               // Auto-resize on change
                               const target = e.target;
                               target.style.height = 'auto';
-                              target.style.height = target.scrollHeight + 'px';
+                              const scrollHeight = target.scrollHeight;
+                              target.style.height = `${scrollHeight}px`;
+                              target.style.minHeight = `${scrollHeight}px`;
+                              target.style.maxHeight = 'none';
+                              target.style.overflow = 'visible';
+                              target.style.overflowY = 'visible';
                             }}
                             onInput={(e) => {
                               // Auto-resize on input
                               const target = e.target;
                               target.style.height = 'auto';
-                              target.style.height = target.scrollHeight + 'px';
+                              const scrollHeight = target.scrollHeight;
+                              target.style.height = `${scrollHeight}px`;
+                              target.style.minHeight = `${scrollHeight}px`;
+                              target.style.maxHeight = 'none';
+                              target.style.overflow = 'visible';
+                              target.style.overflowY = 'visible';
                             }}
                             placeholder="Enter your goal..."
                             rows={1}
@@ -1622,12 +1917,22 @@ function applyTimeframe(value, options = {}) {
                               value={goal.why}
                               onChange={(e) => {
                                 updateGoal(goal.id, { why: e.target.value });
-                                e.target.style.height = "auto";
-                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                const target = e.target;
+                                target.style.height = "auto";
+                                const scrollHeight = target.scrollHeight;
+                                target.style.height = `${scrollHeight}px`;
+                                target.style.minHeight = `${scrollHeight}px`;
+                                target.style.maxHeight = 'none';
+                                target.style.overflow = 'visible';
+                                target.style.overflowY = 'visible';
                               }}
                               onInput={(e) => {
-                                e.target.style.height = "auto";
-                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                const target = e.target;
+                                target.style.height = "auto";
+                                const scrollHeight = target.scrollHeight;
+                                target.style.height = `${scrollHeight}px`;
+                                target.style.minHeight = `${scrollHeight}px`;
+                                target.style.maxHeight = 'none';
                               }}
                               placeholder="Remind yourself why this matters."
                               rows={1}
@@ -1639,12 +1944,22 @@ function applyTimeframe(value, options = {}) {
                               value={goal.nextStep}
                               onChange={(e) => {
                                 updateGoal(goal.id, { nextStep: e.target.value });
-                                e.target.style.height = "auto";
-                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                const target = e.target;
+                                target.style.height = "auto";
+                                const scrollHeight = target.scrollHeight;
+                                target.style.height = `${scrollHeight}px`;
+                                target.style.minHeight = `${scrollHeight}px`;
+                                target.style.maxHeight = 'none';
+                                target.style.overflow = 'visible';
+                                target.style.overflowY = 'visible';
                               }}
                               onInput={(e) => {
-                                e.target.style.height = "auto";
-                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                const target = e.target;
+                                target.style.height = "auto";
+                                const scrollHeight = target.scrollHeight;
+                                target.style.height = `${scrollHeight}px`;
+                                target.style.minHeight = `${scrollHeight}px`;
+                                target.style.maxHeight = 'none';
                               }}
                               placeholder="Block a meeting? Call the mentor?"
                               rows={1}
@@ -1656,12 +1971,22 @@ function applyTimeframe(value, options = {}) {
                               value={goal.reward}
                               onChange={(e) => {
                                 updateGoal(goal.id, { reward: e.target.value });
-                                e.target.style.height = "auto";
-                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                const target = e.target;
+                                target.style.height = "auto";
+                                const scrollHeight = target.scrollHeight;
+                                target.style.height = `${scrollHeight}px`;
+                                target.style.minHeight = `${scrollHeight}px`;
+                                target.style.maxHeight = 'none';
+                                target.style.overflow = 'visible';
+                                target.style.overflowY = 'visible';
                               }}
                               onInput={(e) => {
-                                e.target.style.height = "auto";
-                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                const target = e.target;
+                                target.style.height = "auto";
+                                const scrollHeight = target.scrollHeight;
+                                target.style.height = `${scrollHeight}px`;
+                                target.style.minHeight = `${scrollHeight}px`;
+                                target.style.maxHeight = 'none';
                               }}
                               placeholder="What will you do when it's done?"
                               rows={1}
