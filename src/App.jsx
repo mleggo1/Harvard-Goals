@@ -8,10 +8,12 @@ import {
   getCurrentSavePath, 
   changeSaveLocation,
   loadFromFile,
+  loadFromFileInput,
   saveToFile,
   isFileSystemAvailable,
   saveToIDB,
-  saveFileHandle
+  saveFileHandle,
+  setFilePath
 } from "./fileStorage.js";
 
 const STORAGE_KEY = "harvard_goals_v2";
@@ -1027,10 +1029,13 @@ function applyTimeframe(value, options = {}) {
           },
           goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
         });
+        // Update save path - will show the file name/path
         setSavePath(getCurrentSavePath());
       }
     } catch (error) {
-      alert("Error loading file. Please make sure it's a valid Goals Blueprint file.");
+      if (error.name !== 'AbortError') {
+        alert("Error loading file. Please make sure it's a valid Goals Blueprint file.");
+      }
     }
   }
 
@@ -1047,41 +1052,33 @@ function applyTimeframe(value, options = {}) {
     URL.revokeObjectURL(url);
   }
 
-  function loadPlanJson(event) {
+  async function loadPlanJson(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const loaded = JSON.parse(e.target.result);
-        setPlanner({
-          ...DEFAULT_STATE,
-          ...loaded,
-          ritualChecks: {
-            ...DEFAULT_STATE.ritualChecks,
-            ...(loaded.ritualChecks || {})
-          },
-          goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
-        });
-        // Save to current location
-        await saveToFile({
-          ...DEFAULT_STATE,
-          ...loaded,
-          ritualChecks: {
-            ...DEFAULT_STATE.ritualChecks,
-            ...(loaded.ritualChecks || {})
-          },
-          goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
-        });
-        setSavePath(getCurrentSavePath());
-        // Reset file input
-        event.target.value = "";
-      } catch (error) {
-        alert("Error loading file. Please make sure it's a valid Goals Blueprint file.");
-      }
-    };
-    reader.readAsText(file);
+    try {
+      // Use loadFromFileInput which handles storing the file path
+      const loaded = await loadFromFileInput(file);
+      
+      setPlanner({
+        ...DEFAULT_STATE,
+        ...loaded,
+        ritualChecks: {
+          ...DEFAULT_STATE.ritualChecks,
+          ...(loaded.ritualChecks || {})
+        },
+        goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
+      });
+      
+      // Update save path to show the imported file path
+      setSavePath(getCurrentSavePath());
+      
+      // Reset file input
+      event.target.value = "";
+    } catch (error) {
+      alert("Error loading file. Please make sure it's a valid Goals Blueprint file.");
+      event.target.value = "";
+    }
   }
 
   function exportGoalsToPdf() {
@@ -1422,8 +1419,10 @@ function applyTimeframe(value, options = {}) {
                   color: 'var(--text-primary)', 
                   fontWeight: 500,
                   wordBreak: 'break-word',
-                  maxWidth: '400px'
-                }}>
+                  maxWidth: '600px',
+                  fontFamily: 'monospace',
+                  fontSize: '11px'
+                }} title={savePath}>
                   {savePath}
                 </span>
                 {saveStatus === 'saving' && (

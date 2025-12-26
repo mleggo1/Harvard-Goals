@@ -60,15 +60,20 @@ async function loadFromIDB() {
   }
 }
 
+// Store file handle reference (for desktop File System Access API)
+let currentFileHandle = null;
+
 // Save file handle to localStorage (for persistence across sessions)
 // Note: File handles can't be directly serialized, but we can use the File System Access API's
 // permission persistence feature by storing a flag that we had a handle
-function saveFileHandle(handle) {
+function saveFileHandle(handle, fullPath = null) {
+  currentFileHandle = handle;
   if (handle) {
     // Store that we have a handle (though we can't restore it directly)
     localStorage.setItem(FILE_HANDLE_KEY, 'has_handle');
-    if (handle.name) {
-      localStorage.setItem(FILE_PATH_KEY, handle.name);
+    const path = fullPath || handle.name || (handle.webkitRelativePath ? handle.webkitRelativePath : null);
+    if (path) {
+      localStorage.setItem(FILE_PATH_KEY, path);
     }
     // Try to persist the handle using the permission API
     if (handle.queryPermission) {
@@ -80,13 +85,65 @@ function saveFileHandle(handle) {
     }
   } else {
     localStorage.removeItem(FILE_HANDLE_KEY);
-    localStorage.removeItem(FILE_PATH_KEY);
+    if (!fullPath) {
+      localStorage.removeItem(FILE_PATH_KEY);
+    }
   }
+}
+
+// Get current file handle
+function getCurrentFileHandle() {
+  return currentFileHandle;
 }
 
 // Get stored file path
 function getStoredFilePath() {
   return localStorage.getItem(FILE_PATH_KEY) || null;
+}
+
+// Set file path (for mobile when file is imported via file input)
+function setFilePath(fullPath) {
+  if (fullPath) {
+    localStorage.setItem(FILE_PATH_KEY, fullPath);
+    localStorage.setItem(FILE_HANDLE_KEY, 'has_path'); // Mark that we have a path
+  } else {
+    localStorage.removeItem(FILE_PATH_KEY);
+    localStorage.removeItem(FILE_HANDLE_KEY);
+  }
+}
+
+// Load from file input (for mobile/import)
+async function loadFromFileInput(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    
+    // Store the full file path/name
+    // On mobile, we typically only get the filename, not the full path
+    // But we'll store what we can get
+    let fullPath = file.name || 'Imported file';
+    
+    // Try to get more path info if available
+    if (file.webkitRelativePath) {
+      fullPath = file.webkitRelativePath;
+    } else if (file.path) {
+      // Some browsers may provide this
+      fullPath = file.path;
+    } else if (file.name) {
+      // At minimum, show the filename
+      fullPath = file.name;
+    }
+    
+    setFilePath(fullPath);
+    
+    // Also save to IndexedDB
+    await saveToIDB(data);
+    
+    return data;
+  } catch (error) {
+    console.error('Error loading from file input:', error);
+    throw error;
+  }
 }
 
 // Save using File System Access API
@@ -95,24 +152,39 @@ async function saveToFile(data, fileHandle = null) {
     // Always save to IndexedDB as backup/cache
     await saveToIDB(data);
 
+    // Try to get file handle
+    let handle = fileHandle || getCurrentFileHandle();
+    
     if (!supportsFileSystemAccess()) {
-      // Mobile: only use IndexedDB
-      return { success: true, method: 'indexeddb', path: 'Browser Storage (Mobile)' };
+      // Mobile: use IndexedDB, but show the stored file path
+      const storedPath = getStoredFilePath();
+      return { 
+        success: true, 
+        method: 'indexeddb', 
+        path: storedPath || 'Browser Storage (Mobile)' 
+      };
     }
 
-    let handle = fileHandle;
-    
-    // If no handle provided, check if we should prompt
+    // Desktop: try to use file handle if available
     if (!handle) {
       const handleData = localStorage.getItem(FILE_HANDLE_KEY);
-      if (handleData !== 'has_handle') {
-        // No handle stored, but don't prompt automatically - just use IndexedDB
-        // User can manually choose location via "Change Location" button
-        return { success: true, method: 'indexeddb', path: 'Browser Storage (Not set)' };
+      if (handleData !== 'has_handle' && handleData !== 'has_path') {
+        // No handle/path stored
+        const storedPath = getStoredFilePath();
+        return { 
+          success: true, 
+          method: 'indexeddb', 
+          path: storedPath || 'Browser Storage (Not set)' 
+        };
       }
-      // We had a handle before, but can't restore it directly
-      // Just use IndexedDB for now - user can reopen file manually
-      return { success: true, method: 'indexeddb', path: getStoredFilePath() || 'Browser Storage' };
+      // We had a handle/path before, but can't restore handle directly
+      // Just use IndexedDB but show the path
+      const storedPath = getStoredFilePath();
+      return { 
+        success: true, 
+        method: 'indexeddb', 
+        path: storedPath || 'Browser Storage' 
+      };
     }
 
     // We have a handle - write to file
@@ -122,14 +194,19 @@ async function saveToFile(data, fileHandle = null) {
       await writable.close();
 
       const path = handle.name;
-      saveFileHandle(handle);
+      saveFileHandle(handle, path);
 
       return { success: true, method: 'file', path, handle };
     } catch (error) {
       // Handle permission errors
       if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
-        // Permission lost, fall back to IndexedDB
-        return { success: true, method: 'indexeddb', path: getStoredFilePath() || 'Browser Storage' };
+        // Permission lost, fall back to IndexedDB but keep the path
+        const storedPath = getStoredFilePath();
+        return { 
+          success: true, 
+          method: 'indexeddb', 
+          path: storedPath || 'Browser Storage' 
+        };
       }
       throw error;
     }
@@ -137,7 +214,12 @@ async function saveToFile(data, fileHandle = null) {
     console.error('Error saving file:', error);
     // Fallback to IndexedDB
     await saveToIDB(data);
-    return { success: true, method: 'indexeddb', path: 'Browser Storage (Error Fallback)' };
+    const storedPath = getStoredFilePath();
+    return { 
+      success: true, 
+      method: 'indexeddb', 
+      path: storedPath || 'Browser Storage (Error Fallback)' 
+    };
   }
 }
 
@@ -161,7 +243,6 @@ async function loadFromFile(fileHandle = null) {
           }]
         });
         handle = selectedHandle;
-        saveFileHandle(handle);
       } catch (error) {
         if (error.name === 'AbortError') {
           // User cancelled
@@ -177,7 +258,13 @@ async function loadFromFile(fileHandle = null) {
     const text = await file.text();
     const data = JSON.parse(text);
     
-    saveFileHandle(handle);
+    // Store the file handle and path - use file.name for the path display
+    const fullPath = file.name || handle.name || 'Opened file';
+    saveFileHandle(handle, fullPath);
+    
+    // Also save to IndexedDB
+    await saveToIDB(data);
+    
     return data;
   } catch (error) {
     console.error('Error loading file:', error);
@@ -190,14 +277,40 @@ async function loadFromFile(fileHandle = null) {
 async function changeSaveLocation(data) {
   try {
     if (!supportsFileSystemAccess()) {
-      // On mobile, we can't change location, but we can clear and let user save again
-      localStorage.removeItem(FILE_HANDLE_KEY);
-      localStorage.removeItem(FILE_PATH_KEY);
-      await saveToIDB(data);
-      return { success: true, method: 'indexeddb', path: 'Browser Storage (Mobile)' };
+      // On mobile, prompt user to select a file via file input
+      // We'll use a file input to let them choose, but we can't write to it
+      // Instead, we'll remember the filename for future exports
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+        
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const fullPath = file.name || file.webkitRelativePath || file.path || 'Selected file';
+            setFilePath(fullPath);
+            await saveToIDB(data);
+            resolve({ success: true, method: 'indexeddb', path: fullPath });
+          } else {
+            resolve({ success: false, cancelled: true });
+          }
+          document.body.removeChild(input);
+        };
+        
+        input.oncancel = () => {
+          resolve({ success: false, cancelled: true });
+          document.body.removeChild(input);
+        };
+        
+        // Trigger file picker
+        input.click();
+      });
     }
 
-    // Prompt for new location
+    // Desktop: Prompt for new location using File System Access API
     const handle = await window.showSaveFilePicker({
       suggestedName: FILE_NAME,
       types: [{
@@ -215,8 +328,8 @@ async function changeSaveLocation(data) {
     await saveToIDB(data);
 
     // Update stored handle and path
-    saveFileHandle(handle);
     const path = handle.name;
+    saveFileHandle(handle, path);
 
     return { success: true, method: 'file', path, handle };
   } catch (error) {
@@ -226,7 +339,8 @@ async function changeSaveLocation(data) {
     console.error('Error changing save location:', error);
     // Fallback to IndexedDB
     await saveToIDB(data);
-    return { success: true, method: 'indexeddb', path: 'Browser Storage (Error Fallback)' };
+    const storedPath = getStoredFilePath();
+    return { success: true, method: 'indexeddb', path: storedPath || 'Browser Storage (Error Fallback)' };
   }
 }
 
@@ -292,11 +406,9 @@ async function initialize() {
 
 // Get current save path for display
 function getCurrentSavePath() {
-  if (supportsFileSystemAccess()) {
-    const path = getStoredFilePath();
-    if (path) {
-      return path;
-    }
+  const path = getStoredFilePath();
+  if (path) {
+    return path;
   }
   return 'Browser Storage (Not set)';
 }
@@ -309,6 +421,7 @@ function isFileSystemAvailable() {
 export {
   saveToFile,
   loadFromFile,
+  loadFromFileInput,
   changeSaveLocation,
   autoSave,
   initialize,
@@ -316,6 +429,8 @@ export {
   isFileSystemAvailable,
   supportsFileSystemAccess,
   saveToIDB,
-  saveFileHandle
+  saveFileHandle,
+  setFilePath,
+  getCurrentFileHandle
 };
 
