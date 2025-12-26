@@ -1,14 +1,31 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const CONQUER_STORAGE_KEY = "conquer_journal_v1";
-const CONQUER_WEEKLY_STORAGE_KEY = "conquer_weekly_reviews_v1";
-const CONQUER_MONTHLY_STORAGE_KEY = "conquer_monthly_reviews_v1";
+// User-specific storage keys
+function getUserId() {
+  let userId = localStorage.getItem('conquer_user_id');
+  if (!userId) {
+    // Generate a unique user ID
+    userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('conquer_user_id', userId);
+  }
+  return userId;
+}
 
-// Storage utilities
+function getStorageKey(baseKey) {
+  const userId = getUserId();
+  return `${baseKey}_${userId}`;
+}
+
+const CONQUER_STORAGE_KEY_BASE = "conquer_journal_v1";
+const CONQUER_WEEKLY_STORAGE_KEY_BASE = "conquer_weekly_reviews_v1";
+const CONQUER_MONTHLY_STORAGE_KEY_BASE = "conquer_monthly_reviews_v1";
+
+// Storage utilities with user-specific keys
 function getEntry(dateISO) {
   try {
-    const raw = localStorage.getItem(CONQUER_STORAGE_KEY);
+    const storageKey = getStorageKey(CONQUER_STORAGE_KEY_BASE);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
     const entries = JSON.parse(raw);
     return entries[dateISO] || null;
@@ -19,13 +36,14 @@ function getEntry(dateISO) {
 
 function upsertEntry(entry) {
   try {
-    const raw = localStorage.getItem(CONQUER_STORAGE_KEY);
+    const storageKey = getStorageKey(CONQUER_STORAGE_KEY_BASE);
+    const raw = localStorage.getItem(storageKey);
     const entries = raw ? JSON.parse(raw) : {};
     entries[entry.id] = {
       ...entry,
       updatedAt: new Date().toISOString()
     };
-    localStorage.setItem(CONQUER_STORAGE_KEY, JSON.stringify(entries));
+    localStorage.setItem(storageKey, JSON.stringify(entries));
     return true;
   } catch {
     return false;
@@ -34,7 +52,8 @@ function upsertEntry(entry) {
 
 function listEntries() {
   try {
-    const raw = localStorage.getItem(CONQUER_STORAGE_KEY);
+    const storageKey = getStorageKey(CONQUER_STORAGE_KEY_BASE);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return [];
     const entries = JSON.parse(raw);
     return Object.values(entries).sort((a, b) => 
@@ -64,13 +83,16 @@ function importData(data) {
       data.entries.forEach(entry => {
         entriesObj[entry.id] = entry;
       });
-      localStorage.setItem(CONQUER_STORAGE_KEY, JSON.stringify(entriesObj));
+      const storageKey = getStorageKey(CONQUER_STORAGE_KEY_BASE);
+      localStorage.setItem(storageKey, JSON.stringify(entriesObj));
     }
     if (data.weeklyReviews && Array.isArray(data.weeklyReviews)) {
-      localStorage.setItem(CONQUER_WEEKLY_STORAGE_KEY, JSON.stringify(data.weeklyReviews));
+      const storageKey = getStorageKey(CONQUER_WEEKLY_STORAGE_KEY_BASE);
+      localStorage.setItem(storageKey, JSON.stringify(data.weeklyReviews));
     }
     if (data.monthlyReviews && Array.isArray(data.monthlyReviews)) {
-      localStorage.setItem(CONQUER_MONTHLY_STORAGE_KEY, JSON.stringify(data.monthlyReviews));
+      const storageKey = getStorageKey(CONQUER_MONTHLY_STORAGE_KEY_BASE);
+      localStorage.setItem(storageKey, JSON.stringify(data.monthlyReviews));
     }
     return true;
   } catch {
@@ -80,7 +102,8 @@ function importData(data) {
 
 function getWeeklyReviews() {
   try {
-    const raw = localStorage.getItem(CONQUER_WEEKLY_STORAGE_KEY);
+    const storageKey = getStorageKey(CONQUER_WEEKLY_STORAGE_KEY_BASE);
+    const raw = localStorage.getItem(storageKey);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -89,6 +112,7 @@ function getWeeklyReviews() {
 
 function upsertWeeklyReview(review) {
   try {
+    const storageKey = getStorageKey(CONQUER_WEEKLY_STORAGE_KEY_BASE);
     const reviews = getWeeklyReviews();
     const index = reviews.findIndex(r => r.weekStartISO === review.weekStartISO);
     if (index >= 0) {
@@ -96,7 +120,7 @@ function upsertWeeklyReview(review) {
     } else {
       reviews.push({ ...review, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     }
-    localStorage.setItem(CONQUER_WEEKLY_STORAGE_KEY, JSON.stringify(reviews));
+    localStorage.setItem(storageKey, JSON.stringify(reviews));
     return true;
   } catch {
     return false;
@@ -105,7 +129,8 @@ function upsertWeeklyReview(review) {
 
 function getMonthlyReviews() {
   try {
-    const raw = localStorage.getItem(CONQUER_MONTHLY_STORAGE_KEY);
+    const storageKey = getStorageKey(CONQUER_MONTHLY_STORAGE_KEY_BASE);
+    const raw = localStorage.getItem(storageKey);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -114,6 +139,7 @@ function getMonthlyReviews() {
 
 function upsertMonthlyReview(review) {
   try {
+    const storageKey = getStorageKey(CONQUER_MONTHLY_STORAGE_KEY_BASE);
     const reviews = getMonthlyReviews();
     const index = reviews.findIndex(r => r.monthISO === review.monthISO);
     if (index >= 0) {
@@ -121,7 +147,7 @@ function upsertMonthlyReview(review) {
     } else {
       reviews.push({ ...review, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     }
-    localStorage.setItem(CONQUER_MONTHLY_STORAGE_KEY, JSON.stringify(reviews));
+    localStorage.setItem(storageKey, JSON.stringify(reviews));
     return true;
   } catch {
     return false;
@@ -153,6 +179,122 @@ function getWeekStart(dateISO) {
 function getMonthISO(dateISO) {
   return dateISO.substring(0, 7); // YYYY-MM
 }
+
+// Smart action generation based on goals
+function generateTomorrowActions(selectedGoals, goals) {
+  const actions = [];
+  selectedGoals.forEach(goalText => {
+    if (!goalText || goalText.trim() === '') return;
+    const goal = goals.find(g => g.text === goalText);
+    if (!goal) return;
+    
+    // Convert nextStep to tomorrow-specific action
+    if (goal.nextStep) {
+      let action = goal.nextStep;
+      // Make it more actionable for tomorrow
+      if (action.includes('schedule') || action.includes('plan')) {
+        action = `Tomorrow: ${action}`;
+      } else if (action.includes('Block out')) {
+        action = action.replace('Block out', 'Schedule');
+      } else if (action.includes('Set up')) {
+        action = action.replace('Set up', 'Set up tomorrow');
+      } else if (action.includes('Create')) {
+        action = action.replace('Create', 'Start creating');
+      } else if (action.includes('Book')) {
+        action = `Tomorrow: ${action}`;
+      } else {
+        action = `Tomorrow: ${action}`;
+      }
+      actions.push(action);
+    } else {
+      // Generate generic action based on goal area
+      if (goal.area === 'Health & Energy') {
+        actions.push(`Take one action toward: ${goalText.substring(0, 50)}...`);
+      } else if (goal.area === 'Wealth & Investing') {
+        actions.push(`Make progress on: ${goalText.substring(0, 50)}...`);
+      } else {
+        actions.push(`Move forward on: ${goalText.substring(0, 50)}...`);
+      }
+    }
+  });
+  return actions.slice(0, 3); // Max 3
+}
+
+function generateDecisiveMove(selectedGoals, goals) {
+  if (!selectedGoals || selectedGoals.length === 0) return '';
+  
+  // Find highest priority goal
+  const goalObjects = selectedGoals
+    .map(text => goals.find(g => g.text === text))
+    .filter(g => g)
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  
+  if (goalObjects.length === 0) return '';
+  
+  const topGoal = goalObjects[0];
+  
+  if (topGoal.nextStep) {
+    // Convert nextStep to a decisive move
+    let move = topGoal.nextStep;
+    // Make it more decisive and immediate
+    if (move.includes('Block out')) {
+      move = move.replace('Block out', 'Block out and commit to');
+    } else if (move.includes('Set')) {
+      move = move.replace('Set', 'Set and execute');
+    } else if (move.includes('Create')) {
+      move = move.replace('Create', 'Create and implement');
+    } else if (move.includes('Schedule')) {
+      move = move.replace('Schedule', 'Schedule and lock in');
+    }
+    return move;
+  }
+  
+  // Fallback based on area
+  if (topGoal.area === 'Health & Energy') {
+    return `Take the most important health action for: ${topGoal.text.substring(0, 60)}...`;
+  } else if (topGoal.area === 'Wealth & Investing') {
+    return `Make the key financial move for: ${topGoal.text.substring(0, 60)}...`;
+  }
+  
+  return `Execute the critical next step for: ${topGoal.text.substring(0, 60)}...`;
+}
+
+// Common suggestions for Stop/Double Down
+const STOP_SUGGESTIONS = [
+  "Checking phone first thing in the morning",
+  "Saying yes to things that don't align with my goals",
+  "Procrastinating on important tasks",
+  "Working late into the evening",
+  "Skipping meals or eating poorly",
+  "Scrolling social media mindlessly",
+  "Multitasking during deep work",
+  "Not getting enough sleep",
+  "Avoiding difficult conversations",
+  "Perfectionism that prevents action",
+  "Comparing myself to others",
+  "Not taking breaks during work",
+  "Overcommitting to low-value activities",
+  "Starting the day without a plan",
+  "Reactive instead of proactive behavior"
+];
+
+const DOUBLE_DOWN_SUGGESTIONS = [
+  "Morning routine and planning",
+  "Deep work blocks without distractions",
+  "Daily movement and exercise",
+  "Quality sleep schedule",
+  "Protein and whole foods",
+  "Weekly review and planning",
+  "Time blocking for priorities",
+  "Saying no to non-essentials",
+  "Daily gratitude practice",
+  "Reading and learning",
+  "Connecting with important people",
+  "Taking strategic breaks",
+  "Focusing on one task at a time",
+  "Early morning productivity",
+  "Consistent daily habits"
+];
 
 export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) {
   const [currentPage, setCurrentPage] = useState('today');
@@ -392,6 +534,12 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
                   📅 Today
                 </button>
                 <button 
+                  className={`btn btn-ghost ${currentPage === 'calendar' ? 'active' : ''}`}
+                  onClick={() => setCurrentPage('calendar')}
+                >
+                  📅 Calendar
+                </button>
+                <button 
                   className={`btn btn-ghost ${currentPage === 'history' ? 'active' : ''}`}
                   onClick={() => setCurrentPage('history')}
                 >
@@ -462,6 +610,20 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
               goals={goals}
             />
           )}
+          {currentPage === 'calendar' && (
+            <CalendarPage 
+              onSelectDate={(dateISO) => {
+                const selectedEntry = getEntry(dateISO);
+                if (selectedEntry) {
+                  setEntry(selectedEntry);
+                } else {
+                  setEntry(createEmptyEntry(dateISO));
+                }
+                setTodayISO(dateISO);
+                setCurrentPage('today');
+              }}
+            />
+          )}
           {currentPage === 'history' && (
             <HistoryPage 
               onSelectDate={(dateISO) => {
@@ -494,11 +656,27 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
     <div className="planner-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px', margin: '0 auto' }}>
       <section className="column">
         {/* Analytics Summary */}
-        <article className="card highlight">
+        <article className="card highlight" style={{ 
+          background: analytics.streak > 0 ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(99, 102, 241, 0.1))' : undefined,
+          border: analytics.streak > 0 ? '2px solid rgba(56, 189, 248, 0.4)' : undefined
+        }}>
           <header className="card-header">
             <div className="card-title">
               <span className="icon">📊</span>
               <span>Your Momentum</span>
+              {analytics.streak > 0 && (
+                <span style={{ 
+                  marginLeft: '12px',
+                  fontSize: '12px',
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  color: 'var(--accent)'
+                }}>
+                  🔥 {analytics.streak} Day Streak!
+                </span>
+              )}
             </div>
           </header>
           <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
@@ -602,7 +780,7 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
               <span className="icon">🎯</span>
               <span>Current Focus Goals</span>
             </div>
-            <p>What are your top 3 goals right now?</p>
+            <p>What are your top 3 goals right now? <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Select from your Goals page to auto-generate actions</span></p>
           </header>
           <div className="field">
             {entry.currentGoals.map((goal, index) => {
@@ -615,6 +793,12 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
                       onChange={(e) => {
                         const selectedGoalText = e.target.value;
                         updateListItem('currentGoals', index, selectedGoalText);
+                        
+                        // Get all selected goals
+                        const updatedGoals = [...entry.currentGoals];
+                        updatedGoals[index] = selectedGoalText;
+                        const selectedGoals = updatedGoals.filter(g => g && g.trim() !== '');
+                        
                         // Auto-populate action if goal has nextStep
                         if (selectedGoalText && selectedGoalText !== '') {
                           const matchingGoal = goals.find(g => g.text === selectedGoalText);
@@ -633,6 +817,40 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
                               }
                             }
                             updateEntryField('actionsToday', currentActions);
+                          }
+                        }
+                        
+                        // Generate smart tomorrow actions
+                        if (selectedGoals.length > 0) {
+                          const tomorrowActions = generateTomorrowActions(selectedGoals, goals);
+                          if (tomorrowActions.length > 0) {
+                            const currentTomorrow = [...entry.actionsTomorrow];
+                            // Fill empty slots or replace if all filled
+                            tomorrowActions.forEach((action, i) => {
+                              if (i < 3) {
+                                if (currentTomorrow[i] && !currentTomorrow[i].trim()) {
+                                  currentTomorrow[i] = action;
+                                } else if (currentTomorrow.length <= i) {
+                                  currentTomorrow.push(action);
+                                } else if (!currentTomorrow.some(a => a.includes(action.substring(0, 30)))) {
+                                  // Only add if not already similar
+                                  if (currentTomorrow.length < 3) {
+                                    currentTomorrow.push(action);
+                                  } else {
+                                    currentTomorrow[i] = action;
+                                  }
+                                }
+                              }
+                            });
+                            updateEntryField('actionsTomorrow', currentTomorrow.slice(0, 3));
+                          }
+                        }
+                        
+                        // Generate decisive move
+                        if (selectedGoals.length > 0) {
+                          const decisiveMove = generateDecisiveMove(selectedGoals, goals);
+                          if (decisiveMove && !entry.decisiveMove.trim()) {
+                            updateEntryField('decisiveMove', decisiveMove);
                           }
                         }
                       }}
@@ -738,29 +956,69 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
               <span className="icon">🚀</span>
               <span>ACTIONS I WILL TAKE TOMORROW (NON-NEGOTIABLES)</span>
             </div>
-            <p>What must get done tomorrow? (max 3)</p>
+            <p>What must get done tomorrow? (max 3) <span style={{ fontSize: '11px', color: 'var(--accent)', fontStyle: 'italic' }}>✨ Smart suggestions based on your goals</span></p>
           </header>
           <div className="field">
-            {entry.actionsTomorrow.map((action, index) => (
-              <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <input
-                  type="text"
-                  value={action}
-                  onChange={(e) => updateListItem('actionsTomorrow', index, e.target.value)}
-                  placeholder={`Non-negotiable ${index + 1}`}
-                  style={{ flex: 1 }}
-                />
-                {entry.actionsTomorrow.length > 1 && (
-                  <button
-                    className="btn btn-ghost"
-                    onClick={() => removeListItem('actionsTomorrow', index)}
-                    style={{ padding: '8px 12px' }}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+            {entry.actionsTomorrow.map((action, index) => {
+              const selectedGoals = entry.currentGoals.filter(g => g && g.trim() !== '');
+              const suggestedActions = selectedGoals.length > 0 ? generateTomorrowActions(selectedGoals, goals) : [];
+              const hasSuggestion = suggestedActions[index];
+              
+              return (
+                <div key={index} style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
+                    <input
+                      type="text"
+                      value={action}
+                      onChange={(e) => updateListItem('actionsTomorrow', index, e.target.value)}
+                      placeholder={`Non-negotiable ${index + 1}`}
+                      style={{ flex: 1 }}
+                      list={`tomorrow-suggestions-${index}`}
+                    />
+                    {hasSuggestion && !action.trim() && (
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => updateListItem('actionsTomorrow', index, suggestedActions[index])}
+                        style={{ 
+                          padding: '6px 10px',
+                          fontSize: '10px',
+                          whiteSpace: 'nowrap',
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          borderColor: 'rgba(56, 189, 248, 0.4)'
+                        }}
+                        title="Use suggested action"
+                      >
+                        ✨ Use
+                      </button>
+                    )}
+                    {entry.actionsTomorrow.length > 1 && (
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => removeListItem('actionsTomorrow', index)}
+                        style={{ padding: '8px 12px' }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  {hasSuggestion && !action.trim() && (
+                    <div style={{ 
+                      padding: '6px 10px', 
+                      background: 'rgba(56, 189, 248, 0.1)', 
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      marginTop: '4px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => updateListItem('actionsTomorrow', index, suggestedActions[index])}
+                    >
+                      💡 <strong>Suggested:</strong> {suggestedActions[index]}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {entry.actionsTomorrow.length < 3 && (
               <button
                 className="btn btn-ghost"
@@ -779,15 +1037,56 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
               <span className="icon">⚡</span>
               <span>One Decisive Move</span>
             </div>
-            <p>The one action that will move the needle today.</p>
+            <p>The one action that will move the needle today. <span style={{ fontSize: '11px', color: 'var(--accent)', fontStyle: 'italic' }}>✨ Auto-suggested from your goals</span></p>
           </header>
           <div className="field">
-            <input
-              type="text"
-              value={entry.decisiveMove}
-              onChange={(e) => updateEntryField('decisiveMove', e.target.value)}
-              placeholder="What's the one decisive move?"
-            />
+            {(() => {
+              const selectedGoals = entry.currentGoals.filter(g => g && g.trim() !== '');
+              const suggestedMove = selectedGoals.length > 0 ? generateDecisiveMove(selectedGoals, goals) : '';
+              return (
+                <>
+                  <input
+                    type="text"
+                    value={entry.decisiveMove}
+                    onChange={(e) => updateEntryField('decisiveMove', e.target.value)}
+                    placeholder="What's the one decisive move?"
+                    list="decisive-move-suggestions"
+                  />
+                  {suggestedMove && !entry.decisiveMove.trim() && (
+                    <div style={{ 
+                      padding: '8px 12px', 
+                      background: 'rgba(56, 189, 248, 0.1)', 
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: 'var(--text-muted)',
+                      marginTop: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                    onClick={() => updateEntryField('decisiveMove', suggestedMove)}
+                    >
+                      <span>💡 <strong>Suggested decisive move:</strong> {suggestedMove}</span>
+                      <button
+                        className="btn btn-ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateEntryField('decisiveMove', suggestedMove);
+                        }}
+                        style={{ 
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          marginLeft: '8px'
+                        }}
+                      >
+                        Use
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </article>
 
@@ -860,7 +1159,7 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
               <span>OPTIONAL WEEKLY PAGE (HIGHLY RECOMMENDED)</span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              Weekly Focus
+              Weekly Focus • Fill this once per week to maintain clarity
             </p>
           </header>
           <div className="field">
@@ -881,29 +1180,127 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
             <label style={{ fontSize: '13px', fontWeight: 600, marginBottom: '6px', display: 'block' }}>
               One Thing to Stop
             </label>
-            <input
-              type="text"
+            <select
               value={entry.weeklyFocus?.oneThingToStop || ''}
               onChange={(e) => updateEntryField('weeklyFocus', {
                 ...(entry.weeklyFocus || {}),
                 oneThingToStop: e.target.value
               })}
-              placeholder="What should you stop doing this week?"
-            />
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '999px',
+                border: '1px solid var(--border)',
+                background: 'rgba(148, 163, 184, 0.1)',
+                color: 'var(--text-primary)',
+                fontFamily: 'inherit',
+                fontSize: '14px',
+                marginBottom: '8px'
+              }}
+            >
+              <option value="">Select or type your own...</option>
+              {STOP_SUGGESTIONS.map((suggestion, idx) => (
+                <option key={idx} value={suggestion}>{suggestion}</option>
+              ))}
+            </select>
+            {entry.weeklyFocus?.oneThingToStop && !STOP_SUGGESTIONS.includes(entry.weeklyFocus.oneThingToStop) && (
+              <input
+                type="text"
+                value={entry.weeklyFocus.oneThingToStop}
+                onChange={(e) => updateEntryField('weeklyFocus', {
+                  ...(entry.weeklyFocus || {}),
+                  oneThingToStop: e.target.value
+                })}
+                placeholder="Or type your own..."
+                style={{ marginTop: '8px', width: '100%' }}
+              />
+            )}
+            {(!entry.weeklyFocus?.oneThingToStop || entry.weeklyFocus.oneThingToStop === '') && (
+              <input
+                type="text"
+                value=""
+                onChange={(e) => {
+                  if (e.target.value && !STOP_SUGGESTIONS.includes(e.target.value)) {
+                    updateEntryField('weeklyFocus', {
+                      ...(entry.weeklyFocus || {}),
+                      oneThingToStop: e.target.value
+                    });
+                  }
+                }}
+                placeholder="Or type your own..."
+                style={{ marginTop: '8px', width: '100%' }}
+                onFocus={(e) => {
+                  // Clear select when typing
+                  const select = e.target.previousElementSibling;
+                  if (select && select.tagName === 'SELECT') {
+                    select.value = '';
+                  }
+                }}
+              />
+            )}
           </div>
           <div className="field" style={{ marginTop: '16px' }}>
             <label style={{ fontSize: '13px', fontWeight: 600, marginBottom: '6px', display: 'block' }}>
               One Thing to Double Down On
             </label>
-            <input
-              type="text"
+            <select
               value={entry.weeklyFocus?.oneThingToDoubleDown || ''}
               onChange={(e) => updateEntryField('weeklyFocus', {
                 ...(entry.weeklyFocus || {}),
                 oneThingToDoubleDown: e.target.value
               })}
-              placeholder="What should you do more of this week?"
-            />
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '999px',
+                border: '1px solid var(--border)',
+                background: 'rgba(148, 163, 184, 0.1)',
+                color: 'var(--text-primary)',
+                fontFamily: 'inherit',
+                fontSize: '14px',
+                marginBottom: '8px'
+              }}
+            >
+              <option value="">Select or type your own...</option>
+              {DOUBLE_DOWN_SUGGESTIONS.map((suggestion, idx) => (
+                <option key={idx} value={suggestion}>{suggestion}</option>
+              ))}
+            </select>
+            {entry.weeklyFocus?.oneThingToDoubleDown && !DOUBLE_DOWN_SUGGESTIONS.includes(entry.weeklyFocus.oneThingToDoubleDown) && (
+              <input
+                type="text"
+                value={entry.weeklyFocus.oneThingToDoubleDown}
+                onChange={(e) => updateEntryField('weeklyFocus', {
+                  ...(entry.weeklyFocus || {}),
+                  oneThingToDoubleDown: e.target.value
+                })}
+                placeholder="Or type your own..."
+                style={{ marginTop: '8px', width: '100%' }}
+              />
+            )}
+            {(!entry.weeklyFocus?.oneThingToDoubleDown || entry.weeklyFocus.oneThingToDoubleDown === '') && (
+              <input
+                type="text"
+                value=""
+                onChange={(e) => {
+                  if (e.target.value && !DOUBLE_DOWN_SUGGESTIONS.includes(e.target.value)) {
+                    updateEntryField('weeklyFocus', {
+                      ...(entry.weeklyFocus || {}),
+                      oneThingToDoubleDown: e.target.value
+                    });
+                  }
+                }}
+                placeholder="Or type your own..."
+                style={{ marginTop: '8px', width: '100%' }}
+                onFocus={(e) => {
+                  // Clear select when typing
+                  const select = e.target.previousElementSibling;
+                  if (select && select.tagName === 'SELECT') {
+                    select.value = '';
+                  }
+                }}
+              />
+            )}
           </div>
         </article>
 
@@ -915,12 +1312,404 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
             📋 Copy Yesterday's Goals
           </button>
           {isComplete && (
-            <button className="btn primary" style={{ flex: 1 }}>
-              ✓ Day Complete
+            <button 
+              className="btn primary" 
+              style={{ 
+                flex: 1,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                animation: 'none',
+                boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)'
+              }}
+              onClick={() => {
+                // Celebration effect
+                const btn = document.querySelector('.btn.primary');
+                if (btn) {
+                  btn.style.transform = 'scale(1.05)';
+                  setTimeout(() => {
+                    btn.style.transform = 'scale(1)';
+                  }, 200);
+                }
+              }}
+            >
+              🎉 Day Complete! 🎉
             </button>
+          )}
+          {!isComplete && progress.percentage >= 50 && (
+            <div style={{ 
+              flex: 1,
+              padding: '12px',
+              background: 'rgba(56, 189, 248, 0.1)',
+              borderRadius: '12px',
+              textAlign: 'center',
+              fontSize: '13px',
+              color: 'var(--text-muted)'
+            }}>
+              {progress.completed}/{progress.total} sections complete • Keep going! 💪
+            </div>
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function CalendarPage({ onSelectDate }) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const today = new Date();
+  const todayISO = getTodayISO();
+  
+  const entries = listEntries();
+  const entriesByDate = useMemo(() => {
+    const map = {};
+    entries.forEach(entry => {
+      map[entry.dateISO] = entry;
+    });
+    return map;
+  }, [entries]);
+
+  // Get days in month
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    const days = [];
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    // Add days of month
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  };
+
+  const days = getDaysInMonth(currentMonth);
+  const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const navigateMonth = (direction) => {
+    setCurrentMonth(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() + direction);
+      return newDate;
+    });
+  };
+
+  const goToToday = () => {
+    setCurrentMonth(new Date());
+  };
+
+  const getDateISO = (date) => {
+    if (!date) return null;
+    return date.toISOString().split('T')[0];
+  };
+
+  const hasEntry = (date) => {
+    const dateISO = getDateISO(date);
+    return dateISO && entriesByDate[dateISO];
+  };
+
+  const getEntryScore = (date) => {
+    const dateISO = getDateISO(date);
+    const entry = entriesByDate[dateISO];
+    return entry?.dayScore || null;
+  };
+
+  // Monthly stats
+  const monthStats = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const monthEntries = entries.filter(e => {
+      const entryDate = new Date(e.dateISO);
+      return entryDate.getFullYear() === year && entryDate.getMonth() === month;
+    });
+    
+    const scores = monthEntries.filter(e => e.dayScore !== null).map(e => e.dayScore);
+    const actions = monthEntries.reduce((acc, e) => {
+      return acc + e.actionsToday.filter(a => a.trim()).length;
+    }, 0);
+    const aligned = monthEntries.filter(e => e.aligned === true).length;
+    
+    return {
+      totalDays: monthEntries.length,
+      avgScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10 : null,
+      totalActions: actions,
+      alignedDays: aligned
+    };
+  }, [entries, currentMonth]);
+
+  // Year-to-date stats
+  const ytdStats = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const yearEntries = entries.filter(e => {
+      const entryDate = new Date(e.dateISO);
+      return entryDate.getFullYear() === currentYear;
+    });
+    
+    const scores = yearEntries.filter(e => e.dayScore !== null).map(e => e.dayScore);
+    const actions = yearEntries.reduce((acc, e) => {
+      return acc + e.actionsToday.filter(a => a.trim()).length;
+    }, 0);
+    const aligned = yearEntries.filter(e => e.aligned === true).length;
+    
+    return {
+      totalDays: yearEntries.length,
+      avgScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10 : null,
+      totalActions: actions,
+      alignedDays: aligned
+    };
+  }, [entries]);
+
+  return (
+    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      <article className="card">
+        <header className="card-header">
+          <div className="card-title">
+            <span className="icon">📅</span>
+            <span>Calendar View</span>
+          </div>
+        </header>
+        
+        {/* Stats Summary */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+          gap: '12px',
+          marginBottom: '24px',
+          padding: '16px',
+          background: 'rgba(56, 189, 248, 0.1)',
+          borderRadius: '12px'
+        }}>
+          <div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>This Month</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
+              {monthStats.totalDays} days
+            </div>
+            {monthStats.avgScore && (
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Avg: {monthStats.avgScore}/10
+              </div>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Actions This Month</div>
+            <div style={{ fontSize: '18px', fontWeight: 700 }}>
+              {monthStats.totalActions}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Year to Date</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
+              {ytdStats.totalDays} days
+            </div>
+            {ytdStats.avgScore && (
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Avg: {ytdStats.avgScore}/10
+              </div>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>YTD Actions</div>
+            <div style={{ fontSize: '18px', fontWeight: 700 }}>
+              {ytdStats.totalActions}
+            </div>
+          </div>
+        </div>
+
+        {/* Calendar Navigation */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => navigateMonth(-1)}
+              style={{ padding: '8px 12px' }}
+            >
+              ←
+            </button>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, minWidth: '200px', textAlign: 'center' }}>
+              {monthName}
+            </h3>
+            <button
+              className="btn btn-ghost"
+              onClick={() => navigateMonth(1)}
+              style={{ padding: '8px 12px' }}
+            >
+              →
+            </button>
+          </div>
+          <button
+            className="btn btn-ghost"
+            onClick={goToToday}
+            style={{ fontSize: '12px' }}
+          >
+            Today
+          </button>
+        </div>
+
+        {/* Calendar Grid */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(7, 1fr)', 
+          gap: '4px',
+          marginBottom: '16px'
+        }}
+        className="calendar-grid"
+        >
+          {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
+            <div 
+              key={day}
+              style={{ 
+                textAlign: 'center', 
+                fontSize: '12px', 
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                padding: '8px 4px'
+              }}
+            >
+              {day}
+            </div>
+          ))}
+          {days.map((date, index) => {
+            if (!date) {
+              return <div key={`empty-${index}`} style={{ aspectRatio: '1' }} />;
+            }
+            
+            const dateISO = getDateISO(date);
+            const isToday = dateISO === todayISO;
+            const hasEntryForDate = hasEntry(date);
+            const score = getEntryScore(date);
+            const isPast = date < today && !isToday;
+            
+            return (
+              <button
+                key={dateISO}
+                onClick={() => onSelectDate(dateISO)}
+                style={{
+                  aspectRatio: '1',
+                  border: isToday 
+                    ? '2px solid var(--accent)' 
+                    : hasEntryForDate 
+                      ? '2px solid rgba(56, 189, 248, 0.4)' 
+                      : '1px solid var(--border)',
+                  borderRadius: '8px',
+                  background: hasEntryForDate 
+                    ? (score !== null && score >= 8 
+                        ? 'rgba(16, 185, 129, 0.2)' 
+                        : score !== null && score <= 5 
+                          ? 'rgba(248, 113, 113, 0.15)'
+                          : 'rgba(56, 189, 248, 0.15)')
+                    : 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: isToday ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  position: 'relative',
+                  opacity: isPast && !hasEntryForDate ? 0.4 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!isToday) {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(56, 189, 248, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                title={hasEntryForDate ? `Score: ${score || 'N/A'}/10 - Click to view` : 'Click to create entry'}
+              >
+                <span>{date.getDate()}</span>
+                {hasEntryForDate && (
+                  <span style={{ 
+                    fontSize: '10px',
+                    color: score !== null && score >= 8 ? '#10b981' : score !== null && score <= 5 ? '#f87171' : 'var(--accent)'
+                  }}>
+                    {score !== null ? `★${score}` : '✓'}
+                  </span>
+                )}
+                {isToday && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    fontSize: '8px',
+                    color: 'var(--accent)'
+                  }}>
+                    ●
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '16px', 
+          flexWrap: 'wrap',
+          fontSize: '12px',
+          color: 'var(--text-muted)',
+          padding: '12px',
+          background: 'rgba(148, 163, 184, 0.05)',
+          borderRadius: '8px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ 
+              width: '16px', 
+              height: '16px', 
+              border: '2px solid var(--accent)',
+              borderRadius: '4px'
+            }} />
+            <span>Today</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ 
+              width: '16px', 
+              height: '16px', 
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              borderRadius: '4px'
+            }} />
+            <span>Has Entry</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ 
+              width: '16px', 
+              height: '16px', 
+              background: 'rgba(16, 185, 129, 0.2)',
+              borderRadius: '4px'
+            }} />
+            <span>High Score (8+)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ 
+              width: '16px', 
+              height: '16px', 
+              background: 'rgba(248, 113, 113, 0.15)',
+              borderRadius: '4px'
+            }} />
+            <span>Low Score (≤5)</span>
+          </div>
+        </div>
+      </article>
     </div>
   );
 }
@@ -1370,7 +2159,8 @@ function SettingsPage() {
     anchor.download = `conquer-journal-export-${new Date().toISOString().split('T')[0]}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
-    localStorage.setItem('conquer_last_backup', new Date().toISOString());
+    const backupKey = `conquer_last_backup_${getUserId()}`;
+    localStorage.setItem(backupKey, new Date().toISOString());
     setLastBackup(new Date().toLocaleDateString());
   }
 

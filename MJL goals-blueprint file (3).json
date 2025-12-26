@@ -3,7 +3,7 @@
   "notes": "This future matters because it gives me the life I always knew I was capable of — one built on freedom, strength, discipline, and love.\n\nIt means my family thrives.\nIt means Harrison grows up empowered, happy and financially educated.\nIt means I get to live by the ocean, surf often, travel freely, and work with people who inspire me.\n\nIt means generational wealth, legacy, and independence — not just for me, but for everyone I help along the way.\n\nIt means I lived life by design, not by default.",
   "focusWord": "Concur",
   "weeklyMantra": "I am a confident, charismatic leader, driven by love, adventure, and success.",
-  "celebrationPlan": "A day off to surf / jetski, switch off, and enjoy the freedom I’m building.",
+  "celebrationPlan": "A day off to surf / jetski / travel to Bali and surf, switch off, and enjoy the freedom I’m building.",
   "theme": "night",
   "ritualChecks": {
     "review": false,
@@ -13,6 +13,34 @@
   },
   "ownerName": "Michael",
   "goals": [
+    {
+      "id": "g_1766061809554_9601",
+      "text": "I regularly invest time in meaningful relationships and shared experiences that create connection and belonging.",
+      "area": "Health & Energy",
+      "timeframe": "1-year",
+      "priority": 4,
+      "status": "In progress",
+      "createdAt": "2025-12-18T12:43:29.554Z",
+      "why": "Strong social connection is one of the most powerful predictors of lifespan and long-term wellbeing. Humans are wired for connection, and meaningful relationships reduce stress, improve mental health, and reinforce healthy habits.",
+      "nextStep": "Schedule regular catch-ups with key relationships and plan shared experiences.",
+      "reward": "Plan a special trip or experience with loved ones after consistent connection for 3 months.",
+      "deadline": "2026-12-17",
+      "progress": 50
+    },
+    {
+      "id": "g_1766061791907_8578",
+      "text": "I strength train 3–4 times per week to build and maintain muscle, strength, and long-term independence.",
+      "area": "Health & Energy",
+      "timeframe": "1-year",
+      "priority": 5,
+      "status": "In progress",
+      "createdAt": "2025-12-18T12:43:11.907Z",
+      "why": "Strength is one of the strongest predictors of longevity. It protects against injury, metabolic decline, and loss of independence as I age. Maintaining muscle improves insulin sensitivity, bone density, hormone health, and overall resilience for life, sport, and work.",
+      "nextStep": "Block out 3-4 training sessions per week in my calendar and commit to showing up.",
+      "reward": "Upgrade my training equipment or book a session with a coach after 12 weeks of consistency.",
+      "deadline": "2026-12-17",
+      "progress": 50
+    },
     {
       "id": "g_1765976228094_8341",
       "text": "Fully automate my investment strategy across multiple asset classes by year-end.",
@@ -29,7 +57,7 @@
     },
     {
       "id": "g_1765975907664_5682",
-      "text": "Surf three (3) iconic waves in January 2026: Uluwatu, Impossibles, Chicken Wings - Nusa Dua",
+      "text": "Surf three (3) iconic waves in January 2026: Uluwatu, Impossibles, and Chicken Wings ",
       "area": "Adventure & Travel",
       "timeframe": "30-day",
       "priority": 5,
@@ -54,20 +82,6 @@
       "reward": "Celebrate each major milestone with a special experience or dinner.",
       "deadline": "2026-12-16",
       "progress": 70
-    },
-    {
-      "id": "g_1765975672060_4315",
-      "text": "Build and maintain an 85kg lean, muscular, strong, high-energy body",
-      "area": "Health & Energy",
-      "timeframe": "90-day",
-      "priority": 5,
-      "status": "In progress",
-      "createdAt": "2025-12-17T12:47:52.060Z",
-      "why": "When I feel strong and energetic, everything else in life gets easier.",
-      "nextStep": "Block out regular training times in my calendar 3-4 times per week and stick to them.",
-      "reward": "Buy myself new gear or book a bali trip to surf session after 8 weeks of consistency.",
-      "deadline": "2026-03-16",
-      "progress": 80
     }
   ]
 }

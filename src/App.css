@@ -3548,3 +3548,25 @@ body::before {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
+
+/* Calendar Grid Responsive */
+.calendar-grid {
+  gap: 4px !important;
+}
+
+@media (max-width: 768px) {
+  .calendar-grid {
+    gap: 3px !important;
+  }
+  
+  .calendar-grid button {
+    font-size: 12px !important;
+    padding: 4px !important;
+    min-height: 40px !important;
+  }
+  
+  .calendar-grid > div:first-child {
+    font-size: 10px !important;
+    padding: 4px 2px !important;
+  }
+}
