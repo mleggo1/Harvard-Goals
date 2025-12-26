@@ -13,7 +13,9 @@ import {
   isFileSystemAvailable,
   saveToIDB,
   saveFileHandle,
-  setFilePath
+  setFilePath,
+  autoOpenStoredFile,
+  supportsFileSystemAccess
 } from "./fileStorage.js";
 
 const STORAGE_KEY = "harvard_goals_v2";
@@ -381,6 +383,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const {
     vision10,
@@ -412,6 +415,23 @@ export default function App() {
             },
             goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
           });
+        } else if (initResult && initResult.needsOpen && !supportsFileSystemAccess()) {
+          // Mobile: we have a stored file path but no data - try to auto-open
+          // On mobile, we can't auto-open directly, but we can prompt the user
+          // For now, just load from IndexedDB if available
+          const idbData = await loadFromIDB();
+          if (idbData) {
+            const parsed = idbData;
+            setPlanner({
+              ...DEFAULT_STATE,
+              ...parsed,
+              ritualChecks: {
+                ...DEFAULT_STATE.ritualChecks,
+                ...(parsed.ritualChecks || {})
+              },
+              goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
+            });
+          }
         }
         
         // Check if we need to prompt for save location
@@ -1040,14 +1060,28 @@ function applyTimeframe(value, options = {}) {
   }
 
   function downloadPlanJson() {
-    // Fallback download for manual backup
+    // Download with the stored filename if available, otherwise use default
+    const storedPath = getCurrentSavePath();
+    let filename = "goals-blueprint.json";
+    
+    // If we have a stored path, use that filename
+    if (storedPath && storedPath !== 'Browser Storage (Not set)' && storedPath !== 'Browser Storage') {
+      // Extract just the filename from the path
+      const pathParts = storedPath.split(/[/\\]/);
+      filename = pathParts[pathParts.length - 1] || "goals-blueprint.json";
+      // Ensure it has .json extension
+      if (!filename.endsWith('.json')) {
+        filename = filename.replace(/\.[^/.]+$/, '') + '.json';
+      }
+    }
+    
     const blob = new Blob([JSON.stringify(planner, null, 2)], {
       type: "application/json"
     });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "goals-blueprint.json";
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -1080,6 +1114,19 @@ function applyTimeframe(value, options = {}) {
       event.target.value = "";
     }
   }
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    if (showExportMenu) {
+      const handleClickOutside = (event) => {
+        if (!event.target.closest('[data-export-menu]')) {
+          setShowExportMenu(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showExportMenu]);
 
   function exportGoalsToPdf() {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -1374,15 +1421,95 @@ function applyTimeframe(value, options = {}) {
                 >
                   📁 Change Location
                 </button>
-                <button className="btn btn-ghost" onClick={downloadPlanJson} title="Download backup copy">
-                  💾 Download
-                </button>
-                <button className="btn btn-ghost" onClick={exportGoalsToPdf} title="Export to PDF">
-                  📄 PDF
-                </button>
-                <button className="btn btn-ghost" onClick={printPage} title="Print">
-                  🖨 Print
-                </button>
+                {supportsFileSystemAccess() ? (
+                  // Desktop: Group export buttons in dropdown
+                  <div style={{ position: 'relative', display: 'inline-block' }} data-export-menu>
+                    <button 
+                      className="btn btn-ghost" 
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      title="Export options"
+                    >
+                      📤 Export ▼
+                    </button>
+                    {showExportMenu && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '4px',
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        zIndex: 1000,
+                        minWidth: '150px',
+                        padding: '4px'
+                      }}>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={() => {
+                            downloadPlanJson();
+                            setShowExportMenu(false);
+                          }}
+                          title="Download backup copy"
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '8px 12px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          💾 Download
+                        </button>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={() => {
+                            exportGoalsToPdf();
+                            setShowExportMenu(false);
+                          }}
+                          title="Export to PDF"
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '8px 12px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          📄 PDF
+                        </button>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={() => {
+                            printPage();
+                            setShowExportMenu(false);
+                          }}
+                          title="Print"
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '8px 12px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          🖨 Print
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Mobile: Show buttons separately
+                  <>
+                    <button className="btn btn-ghost" onClick={downloadPlanJson} title="Download backup copy">
+                      💾 Download
+                    </button>
+                    <button className="btn btn-ghost" onClick={exportGoalsToPdf} title="Export to PDF">
+                      📄 PDF
+                    </button>
+                    <button className="btn btn-ghost" onClick={printPage} title="Print">
+                      🖨 Print
+                    </button>
+                  </>
+                )}
                 <button
                   className="btn btn-ghost big5-shortcut-btn"
                   onClick={scrollToBig5}

@@ -383,17 +383,21 @@ async function initialize() {
   try {
     // Always try IndexedDB first (it's the most reliable for auto-loading)
     const idbData = await loadFromIDB();
+    const storedPath = getStoredFilePath();
+    
     if (idbData) {
-      const path = getStoredFilePath() || 'Browser Storage';
-      return { data: idbData, path, method: 'indexeddb' };
+      return { data: idbData, path: storedPath || 'Browser Storage', method: 'indexeddb' };
     }
 
     // If no IndexedDB data, check if we have a file path stored
-    if (supportsFileSystemAccess()) {
-      const storedPath = getStoredFilePath();
-      if (storedPath) {
-        // We have a path but no data - user will need to open the file
+    if (storedPath) {
+      // We have a path but no data - on mobile, we should try to prompt to open that file
+      // On desktop with File System Access API, we can try to restore the handle
+      if (supportsFileSystemAccess()) {
         return { data: null, path: storedPath, method: 'file', needsOpen: true };
+      } else {
+        // Mobile: we have a stored path, return it so app can prompt to open
+        return { data: null, path: storedPath, method: 'mobile', needsOpen: true };
       }
     }
 
@@ -401,6 +405,27 @@ async function initialize() {
   } catch (error) {
     console.error('Initialization error:', error);
     return { data: null, path: null, method: null };
+  }
+}
+
+// Auto-open file on mobile if we have a stored path
+async function autoOpenStoredFile() {
+  try {
+    if (supportsFileSystemAccess()) {
+      // Desktop: try to use File System Access API
+      return await loadFromFile();
+    } else {
+      // Mobile: we can't auto-open, but we can return the stored path
+      // The app will need to prompt the user to select the file
+      const storedPath = getStoredFilePath();
+      if (storedPath) {
+        return { needsUserSelection: true, path: storedPath };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error auto-opening file:', error);
+    return null;
   }
 }
 
@@ -425,6 +450,7 @@ export {
   changeSaveLocation,
   autoSave,
   initialize,
+  autoOpenStoredFile,
   getCurrentSavePath,
   isFileSystemAvailable,
   supportsFileSystemAccess,
