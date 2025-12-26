@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { setupSaveLocation, getSessionMetadata } from "./SessionManager.js";
+import { setupSaveLocation, getSaveLocationInfo } from "./SessionManager.js";
 import "./App.css";
 
 export default function SessionSetup({ onComplete }) {
   const [isSettingUp, setIsSettingUp] = useState(false);
   const [error, setError] = useState(null);
+
+  const [setupComplete, setSetupComplete] = useState(false);
+  const [fileInfo, setFileInfo] = useState(null);
 
   const handleSetup = async () => {
     setIsSettingUp(true);
@@ -13,7 +16,14 @@ export default function SessionSetup({ onComplete }) {
     try {
       const result = await setupSaveLocation();
       if (result.success) {
-        onComplete();
+        const locationInfo = getSaveLocationInfo();
+        setFileInfo(locationInfo);
+        setSetupComplete(true);
+        setIsSettingUp(false);
+        // Auto-complete after showing file info
+        setTimeout(() => {
+          if (onComplete) onComplete();
+        }, 2000);
       } else if (result.cancelled) {
         setError("Setup cancelled. You can set this up later in Settings.");
         setIsSettingUp(false);
@@ -27,9 +37,9 @@ export default function SessionSetup({ onComplete }) {
     }
   };
 
-  const metadata = getSessionMetadata();
-  const isFileSystem = metadata?.saveMethod === 'file';
-  const isCache = metadata?.saveMethod === 'cache';
+  const locationInfo = getSaveLocationInfo();
+  const isFileSystem = locationInfo?.saveMethod === 'file';
+  const isCache = locationInfo?.saveMethod === 'cache';
 
   return (
     <div className="app-root">
@@ -65,19 +75,67 @@ export default function SessionSetup({ onComplete }) {
               </div>
             )}
 
-            <button
-              className="btn primary"
-              onClick={handleSetup}
-              disabled={isSettingUp}
-              style={{ 
-                width: '100%',
-                padding: '16px 32px',
-                fontSize: '16px',
-                marginBottom: '16px'
-              }}
-            >
-              {isSettingUp ? 'Setting up...' : 'Choose Save Location'}
-            </button>
+            {setupComplete && fileInfo && (
+              <div style={{ 
+                padding: '16px', 
+                background: 'rgba(16, 185, 129, 0.15)', 
+                border: '2px solid rgba(16, 185, 129, 0.4)',
+                borderRadius: '8px',
+                marginBottom: '24px'
+              }}>
+                <div style={{ 
+                  fontWeight: 700, 
+                  color: '#10b981', 
+                  marginBottom: '12px',
+                  fontSize: '14px'
+                }}>
+                  ✅ Save Location Configured!
+                </div>
+                <div style={{ 
+                  color: 'var(--text-primary)',
+                  wordBreak: 'break-all',
+                  marginBottom: '8px',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '10px 12px',
+                  borderRadius: '6px'
+                }}>
+                  {fileInfo.fullPath || fileInfo.displayPath || fileInfo.fileName}
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                  <strong>File Name:</strong> {fileInfo.fileName}
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
+                  <strong>Location:</strong> {fileInfo.location}
+                </div>
+                <div style={{ 
+                  color: 'var(--accent)', 
+                  fontSize: '12px', 
+                  marginTop: '12px',
+                  fontStyle: 'italic'
+                }}>
+                  Opening your journal...
+                </div>
+              </div>
+            )}
+
+            {!setupComplete && (
+              <button
+                className="btn primary"
+                onClick={handleSetup}
+                disabled={isSettingUp}
+                style={{ 
+                  width: '100%',
+                  padding: '16px 32px',
+                  fontSize: '16px',
+                  marginBottom: '16px'
+                }}
+              >
+                {isSettingUp ? 'Setting up...' : 'Choose Save Location'}
+              </button>
+            )}
 
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '24px' }}>
               <strong>Note:</strong> On mobile devices, your data will be saved locally. 

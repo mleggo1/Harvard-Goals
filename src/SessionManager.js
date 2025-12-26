@@ -32,6 +32,24 @@ export function getSessionMetadata() {
   }
 }
 
+// Get current save location info (for display)
+export function getSaveLocationInfo() {
+  const metadata = getSessionMetadata();
+  if (!metadata || !metadata.saveTarget) {
+    return null;
+  }
+
+  return {
+    fileName: metadata.saveTarget.fileName || 'conquer-session.json',
+    fullPath: metadata.saveTarget.fullPath || metadata.saveTarget.displayPath || metadata.saveTarget.fileName,
+    displayPath: metadata.saveTarget.displayPath || metadata.saveTarget.fileName,
+    location: metadata.saveTarget.location || (metadata.saveMethod === 'file' ? 'File System' : 'Local Storage'),
+    saveMethod: metadata.saveMethod,
+    lastSavedAt: metadata.lastSavedAt,
+    createdAt: metadata.createdAt
+  };
+}
+
 // Save session metadata
 export function saveSessionMetadata(metadata) {
   try {
@@ -140,16 +158,23 @@ export async function saveSessionToFile(sessionData) {
   // Update last saved timestamp
   sessionData.metadata.lastSavedAt = new Date().toISOString();
   
+  // Update saveTarget in session if metadata exists
+  if (metadata && metadata.saveTarget) {
+    sessionData.metadata.saveTarget = metadata.saveTarget;
+  }
+  
   // Always cache first (safety net)
   cacheSession(sessionData);
   
   if (!isFileSystemAccessAvailable()) {
     // Mobile/unsupported: just cache, user can export manually
-    saveSessionMetadata({
-      ...metadata,
-      lastSavedAt: sessionData.metadata.lastSavedAt,
-      saveMethod: 'cache'
-    });
+    if (metadata && metadata.saveTarget) {
+      saveSessionMetadata({
+        ...metadata,
+        lastSavedAt: sessionData.metadata.lastSavedAt,
+        saveMethod: 'cache'
+      });
+    }
     return { success: true, method: 'cache' };
   }
 
@@ -160,13 +185,23 @@ export async function saveSessionToFile(sessionData) {
       await writable.write(JSON.stringify(sessionData, null, 2));
       await writable.close();
       
-      saveSessionMetadata({
+      // Update file info
+      const fileInfo = await getFullFilePath(metadata.fileHandle);
+      const updatedMetadata = {
         ...metadata,
         lastSavedAt: sessionData.metadata.lastSavedAt,
-        saveMethod: 'file'
-      });
+        saveMethod: 'file',
+        saveTarget: {
+          ...metadata.saveTarget,
+          fullPath: fileInfo.displayPath,
+          fileName: fileInfo.fileName,
+          fileSize: fileInfo.fileSize,
+          lastModified: fileInfo.lastModified
+        }
+      };
+      saveSessionMetadata(updatedMetadata);
       
-      return { success: true, method: 'file' };
+      return { success: true, method: 'file', metadata: updatedMetadata };
     } else {
       // No file handle yet - need to prompt user
       return { success: false, needsSetup: true };
@@ -178,15 +213,42 @@ export async function saveSessionToFile(sessionData) {
   }
 }
 
+// Get full file path from file handle (if possible)
+async function getFullFilePath(fileHandle) {
+  try {
+    // Try to get the file to extract path info
+    const file = await fileHandle.getFile();
+    // File System Access API doesn't expose full path for security, but we can show the name
+    // For full path, we'd need to use the file's webkitRelativePath or other methods
+    // On most systems, the file will be in the user's Downloads or chosen directory
+    return {
+      fileName: file.name,
+      fileSize: file.size,
+      lastModified: file.lastModified,
+      // Note: Full path is not accessible via File System Access API for security reasons
+      // We can only show the filename and let user know where they saved it
+      displayPath: `File: ${file.name} (saved in your chosen location)`
+    };
+  } catch (error) {
+    return {
+      fileName: fileHandle.name,
+      displayPath: `File: ${fileHandle.name}`
+    };
+  }
+}
+
 // First-time setup: Choose save location
 export async function setupSaveLocation() {
   if (!isFileSystemAccessAvailable()) {
     // Mobile: use cache with export option
+    const cachePath = `Local Storage Cache (User ID: ${getUserId().substring(0, 12)}...)`;
     const metadata = {
       saveTarget: {
         uri: 'cache',
-        displayPath: 'Local Storage (Export to sync)',
-        fileName: 'conquer-session.json'
+        displayPath: cachePath,
+        fullPath: cachePath,
+        fileName: 'conquer-session.json',
+        location: 'Browser Local Storage'
       },
       createdAt: new Date().toISOString(),
       saveMethod: 'cache'
@@ -205,12 +267,18 @@ export async function setupSaveLocation() {
       }]
     });
 
+    const fileInfo = await getFullFilePath(fileHandle);
+    
     const metadata = {
       fileHandle: fileHandle,
       saveTarget: {
         uri: fileHandle.name,
-        displayPath: fileHandle.name,
-        fileName: fileHandle.name
+        displayPath: fileInfo.displayPath,
+        fullPath: fileInfo.displayPath,
+        fileName: fileInfo.fileName,
+        location: 'File System (your chosen location)',
+        fileSize: fileInfo.fileSize,
+        lastModified: fileInfo.lastModified
       },
       createdAt: new Date().toISOString(),
       saveMethod: 'file'
