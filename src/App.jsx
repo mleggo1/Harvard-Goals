@@ -384,6 +384,8 @@ export default function App() {
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isFirstSession, setIsFirstSession] = useState(false);
 
   const {
     vision10,
@@ -402,6 +404,11 @@ export default function App() {
     async function init() {
       try {
         const initResult = await initialize();
+        
+        // Check if this is first session (no data in IndexedDB or localStorage)
+        const hasData = initResult && initResult.data;
+        const hasStoredPath = getCurrentSavePath() && getCurrentSavePath() !== 'Browser Storage (Not set)';
+        setIsFirstSession(!hasData && !hasStoredPath);
         
         // Load data from file storage if available
         if (initResult && initResult.data) {
@@ -1128,6 +1135,19 @@ function applyTimeframe(value, options = {}) {
     }
   }, [showExportMenu]);
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    if (showMobileMenu) {
+      const handleClickOutside = (event) => {
+        if (!event.target.closest('[data-mobile-menu]')) {
+          setShowMobileMenu(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMobileMenu]);
+
   function exportGoalsToPdf() {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const marginX = 48;
@@ -1377,7 +1397,24 @@ function applyTimeframe(value, options = {}) {
                 className="btn btn-ghost"
                 onClick={() => setCurrentView('conquer')}
                 title="Open Conquer Journal"
-                style={{ fontSize: '11px', padding: '6px 12px' }}
+                style={{ 
+                  fontSize: '12px', 
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  borderRadius: '12px',
+                  fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(99, 102, 241, 0.2)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.2)';
+                }}
               >
                 📔 Conquer Journal
               </button>
@@ -1397,134 +1434,288 @@ function applyTimeframe(value, options = {}) {
                 />
               </div>
               <div className="hero-top-actions">
-                <button 
-                  className="btn btn-ghost" 
-                  onClick={handleOpenFile}
-                  title="Open a Goals Blueprint file"
-                >
-                  📂 Open
-                </button>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={loadPlanJson}
-                  id="file-input"
-                  style={{ display: "none" }}
-                />
-                <label htmlFor="file-input" className="btn btn-ghost" title="Import from file (fallback)">
-                  📥 Import
-                </label>
-                <button 
-                  className="btn btn-ghost" 
-                  onClick={handleChangeSaveLocation}
-                  title="Change where your file is saved"
-                >
-                  📁 Change Location
-                </button>
                 {supportsFileSystemAccess() ? (
-                  // Desktop: Group export buttons in dropdown
-                  <div style={{ position: 'relative', display: 'inline-block' }} data-export-menu>
+                  // Desktop: Show all buttons
+                  <>
                     <button 
                       className="btn btn-ghost" 
-                      onClick={() => setShowExportMenu(!showExportMenu)}
-                      title="Export options"
+                      onClick={handleOpenFile}
+                      title="Open a Goals Blueprint file"
                     >
-                      📤 Export ▼
+                      📂 Open
                     </button>
-                    {showExportMenu && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        right: 0,
-                        marginTop: '4px',
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                        zIndex: 1000,
-                        minWidth: '150px',
-                        padding: '4px'
-                      }}>
-                        <button 
-                          className="btn btn-ghost" 
-                          onClick={() => {
-                            downloadPlanJson();
-                            setShowExportMenu(false);
-                          }}
-                          title="Download backup copy"
-                          style={{ 
-                            width: '100%', 
-                            justifyContent: 'flex-start',
-                            padding: '8px 12px',
-                            borderRadius: '4px'
-                          }}
-                        >
-                          💾 Download
-                        </button>
-                        <button 
-                          className="btn btn-ghost" 
-                          onClick={() => {
-                            exportGoalsToPdf();
-                            setShowExportMenu(false);
-                          }}
-                          title="Export to PDF"
-                          style={{ 
-                            width: '100%', 
-                            justifyContent: 'flex-start',
-                            padding: '8px 12px',
-                            borderRadius: '4px'
-                          }}
-                        >
-                          📄 PDF
-                        </button>
-                        <button 
-                          className="btn btn-ghost" 
-                          onClick={() => {
-                            printPage();
-                            setShowExportMenu(false);
-                          }}
-                          title="Print"
-                          style={{ 
-                            width: '100%', 
-                            justifyContent: 'flex-start',
-                            padding: '8px 12px',
-                            borderRadius: '4px'
-                          }}
-                        >
-                          🖨 Print
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  // Mobile: Show buttons separately
-                  <>
-                    <button className="btn btn-ghost" onClick={downloadPlanJson} title="Download backup copy">
-                      💾 Download
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={loadPlanJson}
+                      id="file-input"
+                      style={{ display: "none" }}
+                    />
+                    <label htmlFor="file-input" className="btn btn-ghost" title="Import from file (fallback)">
+                      📥 Import
+                    </label>
+                    <button 
+                      className="btn btn-ghost" 
+                      onClick={handleChangeSaveLocation}
+                      title="Change where your file is saved"
+                    >
+                      📁 Change Location
                     </button>
-                    <button className="btn btn-ghost" onClick={exportGoalsToPdf} title="Export to PDF">
-                      📄 PDF
+                    <div style={{ position: 'relative', display: 'inline-block' }} data-export-menu>
+                      <button 
+                        className="btn btn-ghost" 
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        title="Export options"
+                      >
+                        📤 Export ▼
+                      </button>
+                      {showExportMenu && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          marginTop: '4px',
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                          zIndex: 1000,
+                          minWidth: '150px',
+                          padding: '4px'
+                        }}>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              downloadPlanJson();
+                              setShowExportMenu(false);
+                            }}
+                            title="Download backup copy"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            💾 Download
+                          </button>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              exportGoalsToPdf();
+                              setShowExportMenu(false);
+                            }}
+                            title="Export to PDF"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            📄 PDF
+                          </button>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              printPage();
+                              setShowExportMenu(false);
+                            }}
+                            title="Print"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            🖨 Print
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      className="btn btn-ghost big5-shortcut-btn"
+                      onClick={scrollToBig5}
+                      title={big5.length > 0 ? `Jump to Big 5 Goals (${big5.length} goals)` : "Jump to Big 5 Goals section"}
+                      disabled={big5.length === 0}
+                    >
+                      🔥 Big 5 {big5.length > 0 && `(${big5.length})`}
                     </button>
-                    <button className="btn btn-ghost" onClick={printPage} title="Print">
-                      🖨 Print
+                    <button
+                      className="btn btn-ghost theme-toggle-btn"
+                      onClick={() => updatePlannerField("theme", theme === "day" ? "night" : "day")}
+                      title={`Switch to ${theme === "day" ? "night" : "day"} mode`}
+                    >
+                      {theme === "day" ? "☀ Day" : "🌙 Night"}
                     </button>
                   </>
+                ) : (
+                  // Mobile: Group buttons in dropdown, only show Big 5 and Import if first session
+                  <>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={loadPlanJson}
+                      id="file-input"
+                      style={{ display: "none" }}
+                    />
+                    {isFirstSession ? (
+                      <label htmlFor="file-input" className="btn btn-ghost" title="Import from file">
+                        📥 Import
+                      </label>
+                    ) : (
+                      <button
+                        className="btn btn-ghost big5-shortcut-btn"
+                        onClick={scrollToBig5}
+                        title={big5.length > 0 ? `Jump to Big 5 Goals (${big5.length} goals)` : "Jump to Big 5 Goals section"}
+                        disabled={big5.length === 0}
+                      >
+                        🔥 Big 5 {big5.length > 0 && `(${big5.length})`}
+                      </button>
+                    )}
+                    <div style={{ position: 'relative', display: 'inline-block' }} data-mobile-menu>
+                      <button 
+                        className="btn btn-ghost" 
+                        onClick={() => setShowMobileMenu(!showMobileMenu)}
+                        title="More options"
+                        style={{ fontSize: '14px' }}
+                      >
+                        ⋯ {showMobileMenu ? '▲' : '▼'}
+                      </button>
+                      {showMobileMenu && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          marginTop: '4px',
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                          zIndex: 1000,
+                          minWidth: '180px',
+                          padding: '4px'
+                        }}>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              handleOpenFile();
+                              setShowMobileMenu(false);
+                            }}
+                            title="Open a Goals Blueprint file"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            📂 Open
+                          </button>
+                          {!isFirstSession && (
+                            <label 
+                              htmlFor="file-input" 
+                              className="btn btn-ghost" 
+                              title="Import from file"
+                              onClick={() => setShowMobileMenu(false)}
+                              style={{ 
+                                width: '100%', 
+                                justifyContent: 'flex-start',
+                                padding: '8px 12px',
+                                borderRadius: '4px',
+                                display: 'block',
+                                textAlign: 'left'
+                              }}
+                            >
+                              📥 Import
+                            </label>
+                          )}
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              handleChangeSaveLocation();
+                              setShowMobileMenu(false);
+                            }}
+                            title="Change where your file is saved"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            📁 Change Location
+                          </button>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              downloadPlanJson();
+                              setShowMobileMenu(false);
+                            }}
+                            title="Download backup copy"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            💾 Download
+                          </button>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              exportGoalsToPdf();
+                              setShowMobileMenu(false);
+                            }}
+                            title="Export to PDF"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            📄 PDF
+                          </button>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={() => {
+                              printPage();
+                              setShowMobileMenu(false);
+                            }}
+                            title="Print"
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            🖨 Print
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => {
+                              updatePlannerField("theme", theme === "day" ? "night" : "day");
+                              setShowMobileMenu(false);
+                            }}
+                            title={`Switch to ${theme === "day" ? "night" : "day"} mode`}
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '8px 12px',
+                              borderRadius: '4px'
+                            }}
+                          >
+                            {theme === "day" ? "☀ Day" : "🌙 Night"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
-                <button
-                  className="btn btn-ghost big5-shortcut-btn"
-                  onClick={scrollToBig5}
-                  title={big5.length > 0 ? `Jump to Big 5 Goals (${big5.length} goals)` : "Jump to Big 5 Goals section"}
-                  disabled={big5.length === 0}
-                >
-                  🔥 Big 5 {big5.length > 0 && `(${big5.length})`}
-                </button>
-                <button
-                  className="btn btn-ghost theme-toggle-btn"
-                  onClick={() => updatePlannerField("theme", theme === "day" ? "night" : "day")}
-                  title={`Switch to ${theme === "day" ? "night" : "day"} mode`}
-                >
-                  {theme === "day" ? "☀ Day" : "🌙 Night"}
-                </button>
               </div>
             </div>
             {/* Save status and path display */}
@@ -2494,11 +2685,66 @@ function applyTimeframe(value, options = {}) {
           <div>
             Saved locally in your browser. Export or print anytime. Built for bold humans.
           </div>
-          <div className="footer-actions">
+          <div className="footer-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div>Inspired by the Harvard Goals Study · Educational use only.</div>
-            <button className="btn btn-ghost btn-footer-reset" onClick={clearAll} title="Reset all data">
-              ♻ Reset All
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {currentView === 'goals' ? (
+                <button 
+                  className="btn btn-ghost"
+                  onClick={() => setCurrentView('conquer')}
+                  title="Open Conquer Journal"
+                  style={{ 
+                    fontSize: '12px', 
+                    padding: '8px 16px',
+                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))',
+                    border: '1px solid rgba(99, 102, 241, 0.4)',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.2)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.2)';
+                  }}
+                >
+                  📔 Conquer Journal
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-ghost"
+                  onClick={() => setCurrentView('goals')}
+                  title="Back to Goals"
+                  style={{ 
+                    fontSize: '12px', 
+                    padding: '8px 16px',
+                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2))',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(56, 189, 248, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(56, 189, 248, 0.2)';
+                  }}
+                >
+                  🚀 Goals
+                </button>
+              )}
+              <button className="btn btn-ghost btn-footer-reset" onClick={clearAll} title="Reset all data">
+                ♻ Reset All
+              </button>
+            </div>
           </div>
         </footer>
       </div>

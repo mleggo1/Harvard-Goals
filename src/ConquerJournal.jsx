@@ -521,8 +521,30 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
                 <p className="eyebrow">CONQUER JOURNAL</p>
                 <h1 className="hero-title">Discipline → Freedom</h1>
               </div>
-              <button className="btn btn-ghost" onClick={onBack} title="Back to Goals">
-                ← Goals
+              <button 
+                className="btn btn-ghost" 
+                onClick={onBack} 
+                title="Back to Goals"
+                style={{ 
+                  fontSize: '12px', 
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2))',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  borderRadius: '12px',
+                  fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(56, 189, 248, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(56, 189, 248, 0.2)';
+                }}
+              >
+                🚀 Goals
               </button>
             </div>
             <div className="planner-owner-row" style={{ marginTop: '16px' }}>
@@ -646,6 +668,36 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
             <SettingsPage />
           )}
         </main>
+        
+        <footer className="app-footer" style={{ marginTop: '48px', padding: '24px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <button 
+              className="btn btn-ghost" 
+              onClick={onBack} 
+              title="Back to Goals"
+              style={{ 
+                fontSize: '12px', 
+                padding: '8px 16px',
+                background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2))',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                borderRadius: '12px',
+                fontWeight: 600,
+                boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(56, 189, 248, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(56, 189, 248, 0.2)';
+              }}
+            >
+              🚀 Goals
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );
