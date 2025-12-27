@@ -706,44 +706,24 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [], on
                 </div>
               )}
             </div>
-            {/* Save status and path display - matching image style */}
-            {getSavePath && (
+            {/* Save status display only (removed "saved to" line per user request) */}
+            {saveStatus !== 'idle' && (
               <div style={{ 
                 display: 'flex', 
-                justifyContent: 'space-between', 
+                justifyContent: 'center', 
                 alignItems: 'center',
                 marginTop: '12px',
-                padding: '10px 16px',
-                background: theme === 'day' ? '#1e3a8a' : '#1e40af',
-                borderRadius: '8px',
-                fontSize: '13px',
-                flexWrap: 'wrap',
-                gap: '8px',
-                borderBottom: `2px solid ${theme === 'day' ? '#3b82f6' : '#60a5fa'}`,
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                padding: '8px 16px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ color: '#ffffff', fontWeight: 500 }}>Saved to:</span>
-                  <span style={{ 
-                    color: '#ffffff', 
-                    fontWeight: 400,
-                    wordBreak: 'break-word',
-                    maxWidth: '600px',
-                    fontFamily: 'monospace',
-                    fontSize: '12px'
-                  }} title={getSavePath()}>
-                    {getSavePath()}
-                  </span>
-                  {saveStatus === 'saving' && (
-                    <span style={{ color: '#93c5fd', fontSize: '11px', marginLeft: '8px' }}>💾 Saving...</span>
-                  )}
-                  {saveStatus === 'saved' && (
-                    <span style={{ color: '#86efac', fontSize: '11px', marginLeft: '8px' }}>✓ Saved</span>
-                  )}
-                  {saveStatus === 'error' && (
-                    <span style={{ color: '#fca5a5', fontSize: '11px', marginLeft: '8px' }}>⚠ Error saving</span>
-                  )}
-                </div>
+                {saveStatus === 'saving' && (
+                  <span style={{ color: 'var(--accent)', fontSize: '13px' }}>💾 Saving...</span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span style={{ color: '#10b981', fontSize: '13px' }}>✓ Saved</span>
+                )}
+                {saveStatus === 'error' && (
+                  <span style={{ color: '#f87171', fontSize: '13px' }}>⚠ Error saving</span>
+                )}
               </div>
             )}
           </div>
