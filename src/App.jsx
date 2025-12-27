@@ -2047,42 +2047,44 @@ function applyTimeframe(value, options = {}) {
                 )}
               </div>
             </div>
-            {/* Save status and path display */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginTop: '12px',
-              padding: '8px 12px',
-              background: 'rgba(148, 163, 184, 0.1)',
-              borderRadius: '8px',
-              fontSize: '12px',
-              flexWrap: 'wrap',
-              gap: '8px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ color: 'var(--text-muted)' }}>File Location:</span>
-                <span style={{ 
-                  color: 'var(--text-primary)', 
-                  fontWeight: 500,
-                  wordBreak: 'break-word',
-                  maxWidth: '600px',
-                  fontFamily: 'monospace',
-                  fontSize: '11px'
-                }} title={savePath || 'No file location set'}>
-                  {savePath || 'No file location set - please choose a location'}
-                </span>
-                {saveStatus === 'saving' && (
-                  <span style={{ color: 'var(--accent)', fontSize: '11px' }}>💾 Saving...</span>
-                )}
-                {saveStatus === 'saved' && (
-                  <span style={{ color: '#10b981', fontSize: '11px' }}>✓ Saved</span>
-                )}
-                {saveStatus === 'error' && (
-                  <span style={{ color: '#f87171', fontSize: '11px' }}>⚠ Error saving</span>
-                )}
+            {/* Save status and path display - only show on desktop */}
+            {supportsFileSystemAccess() && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginTop: '12px',
+                padding: '8px 12px',
+                background: 'rgba(148, 163, 184, 0.1)',
+                borderRadius: '8px',
+                fontSize: '12px',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>File Location:</span>
+                  <span style={{ 
+                    color: 'var(--text-primary)', 
+                    fontWeight: 500,
+                    wordBreak: 'break-word',
+                    maxWidth: '600px',
+                    fontFamily: 'monospace',
+                    fontSize: '11px'
+                  }} title={savePath || 'No file location set'}>
+                    {savePath || 'No file location set - please choose a location'}
+                  </span>
+                  {saveStatus === 'saving' && (
+                    <span style={{ color: 'var(--accent)', fontSize: '11px' }}>💾 Saving...</span>
+                  )}
+                  {saveStatus === 'saved' && (
+                    <span style={{ color: '#10b981', fontSize: '11px' }}>✓ Saved</span>
+                  )}
+                  {saveStatus === 'error' && (
+                    <span style={{ color: '#f87171', fontSize: '11px' }}>⚠ Error saving</span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </header>
 
