@@ -1730,6 +1730,12 @@ function applyTimeframe(value, options = {}) {
         setShowFileLocationPrompt(true);
         setFileError('Please choose a file location to save your data');
         setSaveStatus('idle');
+      } else if (result.needsReopen && result.savedToIDB) {
+        // File handle lost but data saved to IndexedDB - seamless experience
+        setSaveStatus('saved');
+        setSavePath(result.path || getCurrentSavePath());
+        setFileError(null);
+        setTimeout(() => setSaveStatus('idle'), 2000);
       } else if (result.needsReopen) {
         setFileError(result.error || 'File needs to be reopened');
         setSaveStatus('error');
