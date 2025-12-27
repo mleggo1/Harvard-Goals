@@ -693,9 +693,6 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [], on
                       fontFamily: 'inherit'
                     }}
                   />
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {progress.percentage}% complete
-                  </span>
                 </div>
               )}
             </div>
