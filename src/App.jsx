@@ -2032,7 +2032,7 @@ function applyTimeframe(value, options = {}) {
                 {supportsFileSystemAccess() ? (
                   // Desktop: Settings cog with grouped buttons
                   <>
-                    <div style={{ position: 'relative', display: 'inline-block' }} data-desktop-settings>
+                    <div style={{ position: 'relative', display: 'inline-block', zIndex: 10003 }} data-desktop-settings>
                       <button
                         className="btn btn-ghost"
                         onClick={() => setShowDesktopSettings(!showDesktopSettings)}
@@ -2324,13 +2324,14 @@ function applyTimeframe(value, options = {}) {
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                marginTop: '12px',
+                marginTop: showDesktopSettings ? '320px' : '12px',
                 padding: '8px 12px',
                 background: 'rgba(148, 163, 184, 0.1)',
                 borderRadius: '8px',
                 fontSize: '12px',
                 flexWrap: 'wrap',
-                gap: '8px'
+                gap: '8px',
+                transition: 'margin-top 0.2s ease'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span style={{ color: 'var(--text-muted)' }}>File Location:</span>
