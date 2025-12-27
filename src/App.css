@@ -3616,6 +3616,185 @@ body::before {
   .column-side [data-section="momentum-dashboard"] {
     order: 5;
   }
+  
+  /* Fix Big 5 Goals This Year - prevent text cutoff */
+  .column-side [data-section="big5"] .card-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  
+  .column-side [data-section="big5"] .card-title .icon {
+    font-size: 18px !important;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  .column-side [data-section="big5"] .card-title span:last-child {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4 !important;
+  }
+  
+  .column-side [data-section="big5"] .big3-card {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+  }
+  
+  .column-side [data-section="big5"] .big3-card h4 {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    margin: 0 !important;
+  }
+  
+  .column-side [data-section="big5"] .big3-card p {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    margin: 2px 0 0 !important;
+  }
+  
+  .column-side [data-section="big5"] .badge {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+    flex-shrink: 0;
+  }
+  
+  .column-side [data-section="big5"] .big3-progress {
+    font-size: 12px !important;
+    flex-shrink: 0;
+  }
+  
+  /* Fix Goals Due Soon - reduce container height */
+  .column-side [data-section="goals-due-soon"] {
+    padding: 12px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .card-header {
+    margin-bottom: 12px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .card-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .due-date-controls {
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .slider-label {
+    font-size: 13px !important;
+    margin-bottom: 10px !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .slider-value {
+    font-size: 16px !important;
+    padding: 4px 10px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .slider-labels {
+    font-size: 10px !important;
+    margin-top: 4px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .due-soon-goals-list {
+    gap: 8px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .due-soon-goal-card {
+    padding: 10px 12px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .due-soon-goal-content h4 {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .column-side [data-section="goals-due-soon"] .due-soon-goal-content p {
+    font-size: 11px !important;
+    margin: 2px 0 0 !important;
+  }
+  
+  /* Fix Momentum Rituals - resize container */
+  .column-side [data-section="momentum-rituals"] {
+    padding: 12px !important;
+  }
+  
+  .column-side [data-section="momentum-rituals"] .card-header {
+    margin-bottom: 12px !important;
+  }
+  
+  .column-side [data-section="momentum-rituals"] .card-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+  
+  .column-side [data-section="momentum-rituals"] .ritual-list {
+    gap: 8px !important;
+  }
+  
+  .column-side [data-section="momentum-rituals"] .ritual-list label {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+  
+  .column-side [data-section="momentum-rituals"] .ritual-list input {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0;
+  }
+  
+  .column-side [data-section="momentum-rituals"] .ritual-progress {
+    margin: 10px 0 4px !important;
+    height: 5px !important;
+  }
+  
+  .column-side [data-section="momentum-rituals"] small {
+    font-size: 11px !important;
+  }
+  
+  /* Fix Weekly Focus Prompt - resize container */
+  .column-side [data-section="weekly-focus"] {
+    padding: 12px !important;
+  }
+  
+  .column-side [data-section="weekly-focus"] .card-header {
+    margin-bottom: 12px !important;
+  }
+  
+  .column-side [data-section="weekly-focus"] .card-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+  
+  .column-side [data-section="weekly-focus"] .prompt-list {
+    padding-left: 16px !important;
+    gap: 10px !important;
+  }
+  
+  .column-side [data-section="weekly-focus"] .prompt-list li {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
 }
 
 @media (max-width: 768px) {
