@@ -17,6 +17,7 @@ import {
   autoOpenStoredFile,
   supportsFileSystemAccess
 } from "./fileStorage.js";
+import { getAllConquerJournalData, loadAllConquerJournalData } from "./ConquerJournal.jsx";
 
 const STORAGE_KEY = "harvard_goals_v2";
 const OWNER_DEVICE_KEY = "harvard_goals_owner_device";
@@ -422,6 +423,11 @@ export default function App() {
             },
             goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
           });
+          
+          // Load ConquerJournal data if present
+          if (parsed.conquerJournal) {
+            loadAllConquerJournalData(parsed.conquerJournal);
+          }
         } else if (initResult && initResult.needsOpen && !supportsFileSystemAccess()) {
           // Mobile: we have a stored file path but no data - try to auto-open
           // On mobile, we can't auto-open directly, but we can prompt the user
@@ -438,6 +444,11 @@ export default function App() {
               },
               goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
             });
+            
+            // Load ConquerJournal data if present
+            if (parsed.conquerJournal) {
+              loadAllConquerJournalData(parsed.conquerJournal);
+            }
           }
         }
         
@@ -458,12 +469,20 @@ export default function App() {
     init();
   }, []);
 
-  // Auto-save when planner changes
+  // Auto-save when planner changes - include ConquerJournal data
   useEffect(() => {
     if (!isInitialized) return;
     
     setSaveStatus('saving');
-    autoSave(planner, (result) => {
+    
+    // Get ConquerJournal data and combine with planner
+    const conquerData = getAllConquerJournalData();
+    const allData = {
+      ...planner,
+      conquerJournal: conquerData
+    };
+    
+    autoSave(allData, (result) => {
       if (result.success) {
         setSaveStatus('saved');
         setSavePath(result.path || getCurrentSavePath());
@@ -980,7 +999,13 @@ function applyTimeframe(value, options = {}) {
 
   async function handleChangeSaveLocation() {
     setSaveStatus('saving');
-    const result = await changeSaveLocation(planner);
+    // Get ConquerJournal data and combine with planner
+    const conquerData = getAllConquerJournalData();
+    const allData = {
+      ...planner,
+      conquerJournal: conquerData
+    };
+    const result = await changeSaveLocation(allData);
     if (result.success) {
       setSavePath(result.path || getCurrentSavePath());
       setSaveStatus('saved');
@@ -996,9 +1021,16 @@ function applyTimeframe(value, options = {}) {
   async function handleInitialSaveLocation() {
     setSaveStatus('saving');
     try {
+      // Get ConquerJournal data and combine with planner
+      const conquerData = getAllConquerJournalData();
+      const allData = {
+        ...planner,
+        conquerJournal: conquerData
+      };
+      
       if (!isFileSystemAvailable()) {
         // Use IndexedDB
-        await saveToIDB(planner);
+        await saveToIDB(allData);
         setSavePath('Browser Storage');
         setSaveStatus('saved');
         setShowSavePrompt(false);
@@ -1017,11 +1049,11 @@ function applyTimeframe(value, options = {}) {
 
       // Write to file
       const writable = await handle.createWritable();
-      await writable.write(JSON.stringify(planner, null, 2));
+      await writable.write(JSON.stringify(allData, null, 2));
       await writable.close();
 
       // Also save to IndexedDB
-      await saveToIDB(planner);
+      await saveToIDB(allData);
 
       // Update stored handle
       saveFileHandle(handle);
@@ -1034,7 +1066,12 @@ function applyTimeframe(value, options = {}) {
         setSaveStatus('idle');
       } else {
         // Fallback to IndexedDB
-        await saveToIDB(planner);
+        const conquerData = getAllConquerJournalData();
+        const allData = {
+          ...planner,
+          conquerJournal: conquerData
+        };
+        await saveToIDB(allData);
         setSavePath('Browser Storage');
         setSaveStatus('saved');
         setShowSavePrompt(false);
@@ -1110,6 +1147,11 @@ function applyTimeframe(value, options = {}) {
         },
         goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
       });
+      
+      // Load ConquerJournal data if present
+      if (loaded.conquerJournal) {
+        loadAllConquerJournalData(loaded.conquerJournal);
+      }
       
       // Update save path to show the imported file path
       setSavePath(getCurrentSavePath());
@@ -1330,9 +1372,42 @@ function applyTimeframe(value, options = {}) {
     `${CUSTOM_TIMEFRAME_PREFIX}${customTimeframeDays || DEFAULT_CUSTOM_TIMEFRAME_DAYS}`
   );
 
+  // Handle ConquerJournal save callback
+  const handleConquerJournalSave = async (conquerData) => {
+    if (!isInitialized) return;
+    
+    // Combine planner and ConquerJournal data
+    const allData = {
+      ...planner,
+      conquerJournal: conquerData
+    };
+    
+    // Auto-save the combined data
+    autoSave(allData, (result) => {
+      if (result.success) {
+        setSaveStatus('saved');
+        setSavePath(result.path || getCurrentSavePath());
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else if (result.cancelled) {
+        setSaveStatus('idle');
+      } else {
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    });
+  };
+
   // Show Conquer Journal if that view is selected
   if (currentView === 'conquer') {
-    return <ConquerJournal onBack={() => setCurrentView('goals')} theme={theme} goals={planner.goals} />;
+    return (
+      <ConquerJournal 
+        onBack={() => setCurrentView('goals')} 
+        theme={theme} 
+        goals={planner.goals}
+        onSave={handleConquerJournalSave}
+        getSavePath={() => getCurrentSavePath()}
+      />
+    );
   }
 
   return (

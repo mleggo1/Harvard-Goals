@@ -76,6 +76,56 @@ function exportData() {
   };
 }
 
+// Get all ConquerJournal data for unified storage
+function getAllConquerJournalData() {
+  try {
+    const entries = listEntries();
+    const weekly = getWeeklyReviews();
+    const monthly = getMonthlyReviews();
+    return {
+      entries: entries.reduce((acc, entry) => {
+        acc[entry.id] = entry;
+        return acc;
+      }, {}),
+      weeklyReviews: weekly,
+      monthlyReviews: monthly
+    };
+  } catch (error) {
+    console.error('Error getting ConquerJournal data:', error);
+    return {
+      entries: {},
+      weeklyReviews: [],
+      monthlyReviews: []
+    };
+  }
+}
+
+// Load all ConquerJournal data from unified storage
+function loadAllConquerJournalData(data) {
+  try {
+    if (data.entries && typeof data.entries === 'object') {
+      const entriesObj = data.entries;
+      const storageKey = getStorageKey(CONQUER_STORAGE_KEY_BASE);
+      localStorage.setItem(storageKey, JSON.stringify(entriesObj));
+    }
+    if (data.weeklyReviews && Array.isArray(data.weeklyReviews)) {
+      const storageKey = getStorageKey(CONQUER_WEEKLY_STORAGE_KEY_BASE);
+      localStorage.setItem(storageKey, JSON.stringify(data.weeklyReviews));
+    }
+    if (data.monthlyReviews && Array.isArray(data.monthlyReviews)) {
+      const storageKey = getStorageKey(CONQUER_MONTHLY_STORAGE_KEY_BASE);
+      localStorage.setItem(storageKey, JSON.stringify(data.monthlyReviews));
+    }
+    return true;
+  } catch (error) {
+    console.error('Error loading ConquerJournal data:', error);
+    return false;
+  }
+}
+
+// Export functions for use in App.jsx
+export { getAllConquerJournalData, loadAllConquerJournalData };
+
 function importData(data) {
   try {
     if (data.entries && Array.isArray(data.entries)) {
@@ -296,7 +346,7 @@ const DOUBLE_DOWN_SUGGESTIONS = [
   "Consistent daily habits"
 ];
 
-export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) {
+export default function ConquerJournal({ onBack, theme = 'night', goals = [], onSave = null, getSavePath = null }) {
   const [currentPage, setCurrentPage] = useState('today');
   const [todayISO, setTodayISO] = useState(getTodayISO());
   const [entry, setEntry] = useState(() => {
@@ -334,6 +384,7 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
   }, [todayISO]);
   const [lastSaved, setLastSaved] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
 
   function createEmptyEntry(dateISO) {
     return {
@@ -367,20 +418,35 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
     };
   }
 
-  // Autosave with debouncing
+  // Autosave with debouncing - save to local storage and trigger unified save
   useEffect(() => {
     if (!entry) return;
     
     setSaving(true);
+    setSaveStatus('saving');
     const timer = setTimeout(() => {
       if (upsertEntry(entry)) {
         setLastSaved(new Date());
         setSaving(false);
+        setSaveStatus('saved');
+        
+        // Trigger unified save if callback provided
+        if (onSave) {
+          const conquerData = getAllConquerJournalData();
+          onSave(conquerData);
+        }
+        
+        // Clear saved status after 2 seconds
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else {
+        setSaving(false);
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [entry]);
+  }, [entry, onSave]);
 
   function updateEntryField(field, value) {
     setEntry(prev => ({ ...prev, [field]: value }));
@@ -548,7 +614,7 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
               </button>
             </div>
             <div className="planner-owner-row" style={{ marginTop: '16px' }}>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <button 
                   className={`btn btn-ghost ${currentPage === 'today' ? 'active' : ''}`}
                   onClick={() => setCurrentPage('today')}
@@ -602,15 +668,59 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [] }) 
                       fontFamily: 'inherit'
                     }}
                   />
-                  {saving && <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Saving...</span>}
-                  {lastSaved && !saving && (
-                    <span style={{ fontSize: '11px', color: 'var(--accent)' }}>Saved ✓</span>
+                  {saveStatus === 'saving' && <span style={{ fontSize: '11px', color: 'var(--accent)' }}>💾 Saving...</span>}
+                  {saveStatus === 'saved' && (
+                    <span style={{ fontSize: '11px', color: '#10b981' }}>✓ Saved</span>
+                  )}
+                  {saveStatus === 'error' && (
+                    <span style={{ fontSize: '11px', color: '#f87171' }}>⚠ Error saving</span>
                   )}
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {progress.percentage}% complete
                   </span>
                 </div>
               )}
+            </div>
+            {/* Save status and path display - matching image style */}
+            {getSavePath && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginTop: '12px',
+                padding: '10px 16px',
+                background: theme === 'day' ? '#1e3a8a' : '#1e40af',
+                borderRadius: '8px',
+                fontSize: '13px',
+                flexWrap: 'wrap',
+                gap: '8px',
+                borderBottom: `2px solid ${theme === 'day' ? '#3b82f6' : '#60a5fa'}`,
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ color: '#ffffff', fontWeight: 500 }}>Saved to:</span>
+                  <span style={{ 
+                    color: '#ffffff', 
+                    fontWeight: 400,
+                    wordBreak: 'break-word',
+                    maxWidth: '600px',
+                    fontFamily: 'monospace',
+                    fontSize: '12px'
+                  }} title={getSavePath()}>
+                    {getSavePath()}
+                  </span>
+                  {saveStatus === 'saving' && (
+                    <span style={{ color: '#93c5fd', fontSize: '11px', marginLeft: '8px' }}>💾 Saving...</span>
+                  )}
+                  {saveStatus === 'saved' && (
+                    <span style={{ color: '#86efac', fontSize: '11px', marginLeft: '8px' }}>✓ Saved</span>
+                  )}
+                  {saveStatus === 'error' && (
+                    <span style={{ color: '#fca5a5', fontSize: '11px', marginLeft: '8px' }}>⚠ Error saving</span>
+                  )}
+                </div>
+              </div>
+            )}
             </div>
           </div>
         </header>
@@ -731,6 +841,23 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
               )}
             </div>
           </header>
+          <div style={{ marginBottom: '16px' }}>
+            <button
+              className="btn btn-ghost"
+              onClick={duplicateFromYesterday}
+              title="Copy yesterday's goals and actions to get started quickly"
+              style={{ 
+                fontSize: '12px', 
+                padding: '8px 16px',
+                background: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                borderRadius: '8px',
+                fontWeight: 500
+              }}
+            >
+              📋 Copy Yesterday's Goals
+            </button>
+          </div>
           <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
             <div>
               <p>Streak</p>
@@ -1357,12 +1484,6 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
         </article>
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <button
-            className="btn btn-ghost"
-            onClick={duplicateFromYesterday}
-          >
-            📋 Copy Yesterday's Goals
-          </button>
           {isComplete && (
             <button 
               className="btn primary" 
