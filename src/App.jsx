@@ -1298,9 +1298,13 @@ function applyTimeframe(value, options = {}) {
               }
             }
             
-            // Store filename for future saves
+            // Store filename for future saves (in both places for consistency)
             const fileName = file.name || 'goals-blueprint.json';
             localStorage.setItem('mobile_file_name', fileName);
+            // Also store in fileStorage location for getStoredFileName() to work
+            localStorage.setItem('harvard_goals_file_name', fileName);
+            localStorage.setItem('harvard_goals_file_path', fileName);
+            localStorage.setItem('harvard_goals_file_full_path', fileName);
             
             // Save to IndexedDB as backup
             if (typeof saveToIDB === 'function') {
@@ -1336,7 +1340,7 @@ function applyTimeframe(value, options = {}) {
     }
   }
 
-  // Simple mobile Save As function - saves to user's chosen location
+  // Mobile Save As function - saves to original file or new copy
   async function handleMobileSaveAs() {
     try {
       // Get ConquerJournal data and combine with planner (with error handling)
@@ -1355,11 +1359,20 @@ function applyTimeframe(value, options = {}) {
         ...(conquerData ? { conquerJournal: conquerData } : {})
       };
       
+      // Get the original filename from when they opened the file
+      const originalFileName = localStorage.getItem('mobile_file_name') || 
+                               getStoredFileName() || 
+                               'goals-blueprint.json';
+      
       // Use File System Access API if available (some mobile browsers support it)
+      // This allows saving to the same file OR saving a new copy
       if (supportsFileSystemAccess() && window.showSaveFilePicker) {
         try {
+          // Use the original filename as suggested name - user can choose to:
+          // 1. Save to the same file (overwrite)
+          // 2. Save to a new location/copy
           const handle = await window.showSaveFilePicker({
-            suggestedName: localStorage.getItem('mobile_file_name') || 'goals-blueprint.json',
+            suggestedName: originalFileName,
             types: [{
               description: 'Goals Blueprint',
               accept: { 'application/json': ['.json'] }
@@ -1370,7 +1383,7 @@ function applyTimeframe(value, options = {}) {
           await writable.write(JSON.stringify(allData, null, 2));
           await writable.close();
           
-          // Store filename
+          // Store the filename they chose (could be same or new)
           const fileName = handle.name;
           localStorage.setItem('mobile_file_name', fileName);
           
@@ -1396,9 +1409,9 @@ function applyTimeframe(value, options = {}) {
         }
       }
       
-      // Fallback: Download file
-      const storedFileName = localStorage.getItem('mobile_file_name') || 'goals-blueprint.json';
-      let filename = storedFileName;
+      // Fallback: Download file with original filename
+      // User can choose to replace the original file or save as new copy
+      let filename = originalFileName;
       if (!filename.endsWith('.json')) {
         filename = filename.replace(/\.[^/.]+$/, '') + '.json';
       }
@@ -2385,66 +2398,223 @@ function applyTimeframe(value, options = {}) {
                 ✕
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button
                 className="btn btn-ghost"
-                onClick={() => {
-                  updatePlannerField("theme", theme === "day" ? "night" : "day");
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMobileOpen();
+                  setShowMobileSettings(false);
                 }}
                 style={{
                   width: '100%',
                   justifyContent: 'flex-start',
                   padding: '12px 16px',
                   borderRadius: '8px',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                 }}
               >
-                {theme === "day" ? "☀ Day Mode" : "🌙 Night Mode"}
+                📂 Open
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => {
-                  downloadPlanJson();
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMobileSaveAs();
+                  setShowMobileSettings(false);
                 }}
                 style={{
                   width: '100%',
                   justifyContent: 'flex-start',
                   padding: '12px 16px',
                   borderRadius: '8px',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                💾 Save As
+              </button>
+              <input
+                type="file"
+                accept=".json"
+                onChange={(e) => {
+                  loadPlanJson(e);
+                  setShowMobileSettings(false);
+                }}
+                id="file-input-mobile-settings"
+                style={{ display: "none" }}
+              />
+              <label
+                htmlFor="file-input-mobile-settings"
+                className="btn btn-ghost"
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={() => setShowMobileSettings(false)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                📥 Import
+              </label>
+              <div style={{
+                height: '1px',
+                background: 'var(--border)',
+                margin: '8px 0',
+                opacity: 0.5
+              }} />
+              <button
+                className="btn btn-ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadPlanJson();
+                  setShowMobileSettings(false);
+                }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                 }}
               >
                 💾 Download Backup
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   exportGoalsToPdf();
+                  setShowMobileSettings(false);
                 }}
                 style={{
                   width: '100%',
                   justifyContent: 'flex-start',
                   padding: '12px 16px',
                   borderRadius: '8px',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                 }}
               >
                 📄 Export to PDF
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   printPage();
+                  setShowMobileSettings(false);
                 }}
                 style={{
                   width: '100%',
                   justifyContent: 'flex-start',
                   padding: '12px 16px',
                   borderRadius: '8px',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                 }}
               >
                 🖨 Print
+              </button>
+              <div style={{
+                height: '1px',
+                background: 'var(--border)',
+                margin: '8px 0',
+                opacity: 0.5
+              }} />
+              <button
+                className="btn btn-ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updatePlannerField("theme", theme === "day" ? "night" : "day");
+                  setShowMobileSettings(false);
+                }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {theme === "day" ? "☀ Day Mode" : "🌙 Night Mode"}
               </button>
             </div>
           </div>
