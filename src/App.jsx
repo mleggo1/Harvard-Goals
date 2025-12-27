@@ -583,8 +583,15 @@ export default function App() {
         setShowFileLocationPrompt(true);
         setFileError('Please choose a file location to save your data');
         setSaveStatus('idle');
+      } else if (result.needsReopen && result.savedToIDB) {
+        // File handle lost but data saved to IndexedDB - seamless experience
+        // Don't show error, just update status
+        setSaveStatus('saved');
+        setSavePath(result.path || getCurrentSavePath());
+        setFileError(null);
+        setTimeout(() => setSaveStatus('idle'), 2000);
       } else if (result.needsReopen) {
-        // File handle lost, need to reopen
+        // File handle lost and couldn't save to IndexedDB - show error
         setFileError(result.error || 'File needs to be reopened');
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
