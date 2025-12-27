@@ -375,7 +375,22 @@ export default function App() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [isCustomTimeframe, setIsCustomTimeframe] = useState(false);
   const [customTimeframeDays, setCustomTimeframeDays] = useState("");
-  const [isAddGoalCollapsed, setIsAddGoalCollapsed] = useState(false);
+  // Default Add Goal to collapsed if there are already goals
+  const [isAddGoalCollapsed, setIsAddGoalCollapsed] = useState(() => {
+    // Check if there are existing goals in localStorage
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.goals && parsed.goals.length > 0) {
+          return true; // Collapse if goals exist
+        }
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    return false; // Show by default if no goals
+  });
   const [isVisionCollapsed, setIsVisionCollapsed] = useState(false);
   const [dueDateRange, setDueDateRange] = useState(30);
   
@@ -616,6 +631,14 @@ export default function App() {
     const timer = setTimeout(resizeTextareas, 100);
     return () => clearTimeout(timer);
   }, [weeklyMantra, celebrationPlan]);
+
+  // Update Add Goal collapsed state when goals change (mobile UX improvement)
+  useEffect(() => {
+    if (goals.length > 0 && !isAddGoalCollapsed) {
+      // If goals exist and Add Goal is not collapsed, collapse it to free up space
+      setIsAddGoalCollapsed(true);
+    }
+  }, [goals.length]); // Only depend on goals.length to avoid infinite loops
 
   const filteredGoals = useMemo(() => {
     if (filterTimeframe === "all") return goals;
@@ -1162,11 +1185,53 @@ function applyTimeframe(value, options = {}) {
     }
   }
 
-  // Save function for mobile - tries to save to same file location, falls back to download
-  async function saveMobileFile() {
+  // Simple mobile Open function - loads file from file picker
+  async function handleMobileOpen() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          
+          // Load planner data
+          if (data.vision10 !== undefined) {
+            setPlanner(data);
+          }
+          
+          // Load ConquerJournal data if present
+          if (data.conquerJournal) {
+            loadAllConquerJournalData(data.conquerJournal);
+          }
+          
+          // Store filename for future saves
+          const fileName = file.name || 'goals-blueprint.json';
+          localStorage.setItem('mobile_file_name', fileName);
+          
+          // Save to IndexedDB as backup
+          await saveToIDB(data);
+          
+          setFileError(null);
+        } catch (error) {
+          console.error('Error loading file:', error);
+          setFileError('Error loading file: ' + error.message);
+        }
+      }
+      document.body.removeChild(input);
+    };
+    
+    input.click();
+  }
+
+  // Simple mobile Save As function - saves to user's chosen location
+  async function handleMobileSaveAs() {
     try {
-      setSaveStatus('saving');
-      
       // Get ConquerJournal data and combine with planner
       const conquerData = getAllConquerJournalData();
       const allData = {
@@ -1174,66 +1239,63 @@ function applyTimeframe(value, options = {}) {
         conquerJournal: conquerData
       };
       
-      // Try to save using the file storage system (will attempt to write to same file if possible)
-      const result = await saveToFile(allData);
-      
-      if (result.success) {
-        // Success - file was saved (either to file or IndexedDB)
-        setSaveStatus('saved');
-        setSavePath(result.path || getCurrentSavePath());
-        setFileError(null);
-        setTimeout(() => setSaveStatus('idle'), 2000);
-        
-        // If it was saved to IndexedDB only (mobile), also trigger download
-        if (result.method === 'indexeddb' || result.savedToIDB) {
-          // Download the file so user can save it to the same location
-          const storedFileName = getStoredFileName();
-          let filename = storedFileName || "goals-blueprint.json";
-          
-          // Ensure it has .json extension
-          if (!filename.endsWith('.json')) {
-            filename = filename.replace(/\.[^/.]+$/, '') + '.json';
-          }
-          
-          const blob = new Blob([JSON.stringify(allData, null, 2)], {
-            type: "application/json"
+      // Use File System Access API if available (some mobile browsers support it)
+      if (supportsFileSystemAccess()) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: localStorage.getItem('mobile_file_name') || 'goals-blueprint.json',
+            types: [{
+              description: 'Goals Blueprint',
+              accept: { 'application/json': ['.json'] }
+            }]
           });
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement("a");
-          anchor.href = url;
-          anchor.download = filename;
-          anchor.click();
-          URL.revokeObjectURL(url);
+          
+          const writable = await handle.createWritable();
+          await writable.write(JSON.stringify(allData, null, 2));
+          await writable.close();
+          
+          // Store filename
+          const fileName = handle.name;
+          localStorage.setItem('mobile_file_name', fileName);
+          
+          // Also save to IndexedDB
+          await saveToIDB(allData);
+          
+          setFileError(null);
+          return;
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            // User cancelled
+            return;
+          }
+          // Fall through to download method
         }
-      } else {
-        // Error saving - show error and download as fallback
-        setSaveStatus('error');
-        setFileError(result.error || 'Error saving file');
-        
-        // Still download the file so user doesn't lose data
-        const storedFileName = getStoredFileName();
-        let filename = storedFileName || "goals-blueprint.json";
-        if (!filename.endsWith('.json')) {
-          filename = filename.replace(/\.[^/.]+$/, '') + '.json';
-        }
-        
-        const blob = new Blob([JSON.stringify(allData, null, 2)], {
-          type: "application/json"
-        });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = filename;
-        anchor.click();
-        URL.revokeObjectURL(url);
-        
-        setTimeout(() => setSaveStatus('idle'), 3000);
       }
+      
+      // Fallback: Download file
+      const storedFileName = localStorage.getItem('mobile_file_name') || 'goals-blueprint.json';
+      let filename = storedFileName;
+      if (!filename.endsWith('.json')) {
+        filename = filename.replace(/\.[^/.]+$/, '') + '.json';
+      }
+      
+      const blob = new Blob([JSON.stringify(allData, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      
+      // Also save to IndexedDB
+      await saveToIDB(allData);
+      
+      setFileError(null);
     } catch (error) {
       console.error('Error saving file:', error);
-      setSaveStatus('error');
       setFileError('Error saving file: ' + error.message);
-      setTimeout(() => setSaveStatus('idle'), 3000);
     }
   }
 
@@ -1936,27 +1998,32 @@ function applyTimeframe(value, options = {}) {
                     </button>
                   </>
                 ) : (
-                  // Mobile: Import button and Big 5, Save in dropdown menu
+                  // Mobile: Simple Open/Save As buttons + Big 5 + Settings cog
                   <>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={loadPlanJson}
-                      id="file-input-mobile"
-                      style={{ display: "none" }}
-                    />
-                    <label 
-                      htmlFor="file-input-mobile" 
-                      className="btn btn-ghost" 
-                      title="Import your Goals Blueprint file"
+                    <button
+                      className="btn btn-ghost"
+                      onClick={handleMobileOpen}
+                      title="Open your Goals Blueprint file"
                       style={{
                         background: 'rgba(59, 130, 246, 0.15)',
                         border: '1px solid rgba(59, 130, 246, 0.3)',
                         fontWeight: 600
                       }}
                     >
-                      📥 Import
-                    </label>
+                      📂 Open
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={handleMobileSaveAs}
+                      title="Save As - choose file location and name"
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        fontWeight: 600
+                      }}
+                    >
+                      💾 Save As
+                    </button>
                     <button
                       className="btn btn-ghost big5-shortcut-btn"
                       onClick={scrollToBig5}
@@ -1965,218 +2032,17 @@ function applyTimeframe(value, options = {}) {
                     >
                       🔥 Big 5 {big5.length > 0 && `(${big5.length})`}
                     </button>
-                    <div style={{ position: 'relative', display: 'inline-block' }} data-mobile-menu>
-                      <button 
-                        className="btn btn-ghost" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowMobileMenu(!showMobileMenu);
-                        }}
-                        title="More options"
-                        style={{ 
-                          fontSize: '14px',
-                          position: 'relative',
-                          zIndex: 10001
-                        }}
-                      >
-                        ⋯ {showMobileMenu ? '▲' : '▼'}
-                      </button>
-                      {showMobileMenu && (
-                        <>
-                          {/* Backdrop to close menu on outside click */}
-                          <div 
-                            style={{
-                              position: 'fixed',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              zIndex: 10001,
-                              background: 'transparent'
-                            }}
-                            onClick={() => setShowMobileMenu(false)}
-                          />
-                          {/* Menu dropdown */}
-                          <div 
-                            data-mobile-menu-content
-                            style={{
-                              position: 'absolute',
-                              top: 'calc(100% + 8px)',
-                              right: 0,
-                              background: 'var(--bg-primary)',
-                              border: '2px solid var(--border)',
-                              borderRadius: '12px',
-                              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-                              zIndex: 10002,
-                              minWidth: '240px',
-                              maxWidth: 'min(320px, calc(100vw - 32px))',
-                              maxHeight: 'min(70vh, 500px)',
-                              overflowY: 'auto',
-                              overflowX: 'hidden',
-                              padding: '12px',
-                              WebkitOverflowScrolling: 'touch',
-                              overscrollBehavior: 'contain',
-                              transform: 'translateZ(0)',
-                              willChange: 'transform'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              saveMobileFile();
-                              setShowMobileMenu(false);
-                            }}
-                            title="Save all changes to your file"
-                            disabled={saveStatus === 'saving'}
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left',
-                              background: saveStatus === 'saving' 
-                                ? 'rgba(16, 185, 129, 0.2)' 
-                                : 'rgba(16, 185, 129, 0.15)',
-                              border: '1px solid rgba(16, 185, 129, 0.3)',
-                              fontWeight: 600,
-                              cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer'
-                            }}
-                          >
-                            {saveStatus === 'saving' ? '💾 Saving...' : '💾 Save'}
-                          </button>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleChangeSaveLocation();
-                              setShowMobileMenu(false);
-                            }}
-                            title="Save as - choose file location and name"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left'
-                            }}
-                          >
-                            💾 Save As
-                          </button>
-                          <div style={{
-                            height: '1px',
-                            background: 'var(--border)',
-                            margin: '8px 0',
-                            opacity: 0.5
-                          }} />
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenFile();
-                              setShowMobileMenu(false);
-                            }}
-                            title="Open a Goals Blueprint file"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left'
-                            }}
-                          >
-                            📂 Open
-                          </button>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              downloadPlanJson();
-                              setShowMobileMenu(false);
-                            }}
-                            title="Download backup copy"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left'
-                            }}
-                          >
-                            💾 Download
-                          </button>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              exportGoalsToPdf();
-                              setShowMobileMenu(false);
-                            }}
-                            title="Export to PDF"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left'
-                            }}
-                          >
-                            📄 PDF
-                          </button>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              printPage();
-                              setShowMobileMenu(false);
-                            }}
-                            title="Print"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left'
-                            }}
-                          >
-                            🖨 Print
-                          </button>
-                          <div style={{
-                            height: '1px',
-                            background: 'var(--border)',
-                            margin: '8px 0',
-                            opacity: 0.5
-                          }} />
-                          <button
-                            className="btn btn-ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updatePlannerField("theme", theme === "day" ? "night" : "day");
-                              setShowMobileMenu(false);
-                            }}
-                            title={`Switch to ${theme === "day" ? "night" : "day"} mode`}
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left'
-                            }}
-                          >
-                            {theme === "day" ? "☀ Day" : "🌙 Night"}
-                          </button>
-                        </div>
-                        </>
-                      )}
-                    </div>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => setShowMobileSettings(!showMobileSettings)}
+                      title="Settings"
+                      style={{
+                        fontSize: '18px',
+                        padding: '8px 12px'
+                      }}
+                    >
+                      ⚙️
+                    </button>
                   </>
                 )}
               </div>
@@ -2219,6 +2085,96 @@ function applyTimeframe(value, options = {}) {
             </div>
           </div>
         </header>
+
+        {/* Mobile Settings Menu - expands down the page */}
+        {!supportsFileSystemAccess() && showMobileSettings && (
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '24px',
+            marginTop: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>⚙️ Settings</h3>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowMobileSettings(false)}
+                style={{ padding: '4px 8px', fontSize: '20px' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  updatePlannerField("theme", theme === "day" ? "night" : "day");
+                }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                {theme === "day" ? "☀ Day Mode" : "🌙 Night Mode"}
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  downloadPlanJson();
+                }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                💾 Download Backup
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  exportGoalsToPdf();
+                }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                📄 Export to PDF
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  printPage();
+                }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                🖨 Print
+              </button>
+            </div>
+          </div>
+        )}
 
         <section className="focus-section">
           <div className="focus-section-header">
