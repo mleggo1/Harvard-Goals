@@ -9,12 +9,10 @@ import {
   changeSaveLocation,
   loadFromFile,
   loadFromFileInput,
-  saveToFile,
-  isFileSystemAvailable,
-  saveToIDB,
-  saveFileHandle,
-  setFilePath,
-  autoOpenStoredFile,
+  chooseFileLocation,
+  hasFileLocation,
+  getStoredFilePath,
+  getStoredFileName,
   supportsFileSystemAccess
 } from "./fileStorage.js";
 import { getAllConquerJournalData, loadAllConquerJournalData } from "./ConquerJournal.jsx";
@@ -382,11 +380,11 @@ export default function App() {
   // File storage state
   const [savePath, setSavePath] = useState(() => getCurrentSavePath());
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
-  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [showFileLocationPrompt, setShowFileLocationPrompt] = useState(false);
+  const [fileError, setFileError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [isFirstSession, setIsFirstSession] = useState(false);
 
   const {
     vision10,
@@ -400,18 +398,36 @@ export default function App() {
     ownerName
   } = planner;
 
-  // Initialize on mount
+  // Initialize on mount - check for file location and load data
   useEffect(() => {
     async function init() {
       try {
         const initResult = await initialize();
         
-        // Check if this is first session (no data in IndexedDB or localStorage)
-        const hasData = initResult && initResult.data;
-        const hasStoredPath = getCurrentSavePath() && getCurrentSavePath() !== 'Browser Storage (Not set)';
-        setIsFirstSession(!hasData && !hasStoredPath);
+        // Check if we need to prompt for file location (first time)
+        if (initResult.needsLocation) {
+          setShowFileLocationPrompt(true);
+          setIsInitialized(true);
+          return;
+        }
         
-        // Load data from file storage if available
+        // Check if file needs to be reopened
+        if (initResult.needsReopen) {
+          setFileError(initResult.error || 'File needs to be reopened');
+          setSavePath(initResult.path);
+          setIsInitialized(true);
+          return;
+        }
+        
+        // Check for other errors
+        if (initResult.error && !initResult.data) {
+          setFileError(initResult.error);
+          setSavePath(initResult.path);
+          setIsInitialized(true);
+          return;
+        }
+        
+        // Load data from file
         if (initResult && initResult.data) {
           const parsed = initResult.data;
           setPlanner({
@@ -428,40 +444,16 @@ export default function App() {
           if (parsed.conquerJournal) {
             loadAllConquerJournalData(parsed.conquerJournal);
           }
-        } else if (initResult && initResult.needsOpen && !supportsFileSystemAccess()) {
-          // Mobile: we have a stored file path but no data - try to auto-open
-          // On mobile, we can't auto-open directly, but we can prompt the user
-          // For now, just load from IndexedDB if available
-          const idbData = await loadFromIDB();
-          if (idbData) {
-            const parsed = idbData;
-            setPlanner({
-              ...DEFAULT_STATE,
-              ...parsed,
-              ritualChecks: {
-                ...DEFAULT_STATE.ritualChecks,
-                ...(parsed.ritualChecks || {})
-              },
-              goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
-            });
-            
-            // Load ConquerJournal data if present
-            if (parsed.conquerJournal) {
-              loadAllConquerJournalData(parsed.conquerJournal);
-            }
-          }
+          
+          setFileError(null); // Clear any previous errors
         }
         
-        // Check if we need to prompt for save location
-        const currentPath = getCurrentSavePath();
-        if (currentPath === 'Browser Storage (Not set)' && isFileSystemAvailable()) {
-          setShowSavePrompt(true);
-        }
-        
-        setSavePath(getCurrentSavePath());
+        // Set the save path
+        setSavePath(initResult.path || getCurrentSavePath());
         setIsInitialized(true);
       } catch (error) {
         console.error('Initialization error:', error);
+        setFileError('Error initializing: ' + error.message);
         setSavePath(getCurrentSavePath());
         setIsInitialized(true);
       }
@@ -484,13 +476,29 @@ export default function App() {
     
     autoSave(allData, (result) => {
       if (result.success) {
+        if (result.skipped) {
+          // No change, don't update status
+          return;
+        }
         setSaveStatus('saved');
         setSavePath(result.path || getCurrentSavePath());
+        setFileError(null); // Clear any previous errors
         // Clear saved status after 2 seconds
         setTimeout(() => setSaveStatus('idle'), 2000);
+      } else if (result.needsLocation) {
+        // Need to choose file location
+        setShowFileLocationPrompt(true);
+        setFileError('Please choose a file location to save your data');
+        setSaveStatus('idle');
+      } else if (result.needsReopen) {
+        // File handle lost, need to reopen
+        setFileError(result.error || 'File needs to be reopened');
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
       } else if (result.cancelled) {
         setSaveStatus('idle');
       } else {
+        setFileError(result.error || 'Error saving file');
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
@@ -1018,7 +1026,7 @@ function applyTimeframe(value, options = {}) {
     }
   }
 
-  async function handleInitialSaveLocation() {
+  async function handleChooseFileLocation() {
     setSaveStatus('saving');
     try {
       // Get ConquerJournal data and combine with planner
@@ -1028,62 +1036,96 @@ function applyTimeframe(value, options = {}) {
         conquerJournal: conquerData
       };
       
-      if (!isFileSystemAvailable()) {
-        // Use IndexedDB
-        await saveToIDB(allData);
-        setSavePath('Browser Storage');
+      // Choose file location (first time setup)
+      const result = await chooseFileLocation(allData);
+      
+      if (result.success) {
+        // Load data if it came from the file
+        if (result.data) {
+          const parsed = result.data;
+          setPlanner({
+            ...DEFAULT_STATE,
+            ...parsed,
+            ritualChecks: {
+              ...DEFAULT_STATE.ritualChecks,
+              ...(parsed.ritualChecks || {})
+            },
+            goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
+          });
+          
+          // Load ConquerJournal data if present
+          if (parsed.conquerJournal) {
+            loadAllConquerJournalData(parsed.conquerJournal);
+          }
+        }
+        
+        setSavePath(result.path || result.fileName);
         setSaveStatus('saved');
-        setShowSavePrompt(false);
+        setShowFileLocationPrompt(false);
+        setFileError(null);
         setTimeout(() => setSaveStatus('idle'), 2000);
-        return;
+      } else if (result.cancelled) {
+        setSaveStatus('idle');
+        // Don't close prompt if cancelled - user must choose a location
+      } else {
+        setSaveStatus('error');
+        setFileError(result.error || 'Error setting file location');
+        setTimeout(() => setSaveStatus('idle'), 3000);
       }
-
-      // Prompt for file location
-      const handle = await window.showSaveFilePicker({
-        suggestedName: 'goals-blueprint.json',
-        types: [{
-          description: 'Goals Blueprint',
-          accept: { 'application/json': ['.json'] }
-        }]
-      });
-
-      // Write to file
-      const writable = await handle.createWritable();
-      await writable.write(JSON.stringify(allData, null, 2));
-      await writable.close();
-
-      // Also save to IndexedDB
-      await saveToIDB(allData);
-
-      // Update stored handle
-      saveFileHandle(handle);
-      setSavePath(handle.name);
-      setSaveStatus('saved');
-      setShowSavePrompt(false);
-      setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
-      if (error.name === 'AbortError') {
+      console.error('Error choosing file location:', error);
+      setSaveStatus('error');
+      setFileError('Error: ' + error.message);
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  }
+
+  async function handleReopenFile() {
+    try {
+      setSaveStatus('saving');
+      const result = await loadFromFile();
+      
+      if (result.success && result.data) {
+        const parsed = result.data;
+        setPlanner({
+          ...DEFAULT_STATE,
+          ...parsed,
+          ritualChecks: {
+            ...DEFAULT_STATE.ritualChecks,
+            ...(parsed.ritualChecks || {})
+          },
+          goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
+        });
+        
+        // Load ConquerJournal data if present
+        if (parsed.conquerJournal) {
+          loadAllConquerJournalData(parsed.conquerJournal);
+        }
+        
+        setSavePath(result.path);
+        setFileError(null);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else if (result.cancelled) {
         setSaveStatus('idle');
       } else {
-        // Fallback to IndexedDB
-        const conquerData = getAllConquerJournalData();
-        const allData = {
-          ...planner,
-          conquerJournal: conquerData
-        };
-        await saveToIDB(allData);
-        setSavePath('Browser Storage');
-        setSaveStatus('saved');
-        setShowSavePrompt(false);
-        setTimeout(() => setSaveStatus('idle'), 2000);
+        setFileError(result.error || 'Could not open file');
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
       }
+    } catch (error) {
+      console.error('Error reopening file:', error);
+      setFileError('Error: ' + error.message);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     }
   }
 
   async function handleOpenFile() {
     try {
-      const loaded = await loadFromFile();
-      if (loaded) {
+      const result = await loadFromFile();
+      if (result.success && result.data) {
+        const loaded = result.data;
         setPlanner({
           ...DEFAULT_STATE,
           ...loaded,
@@ -1093,12 +1135,21 @@ function applyTimeframe(value, options = {}) {
           },
           goals: Array.isArray(loaded.goals) ? loaded.goals.map(hydrateGoal) : []
         });
-        // Update save path - will show the file name/path
-        setSavePath(getCurrentSavePath());
+        
+        // Load ConquerJournal data if present
+        if (loaded.conquerJournal) {
+          loadAllConquerJournalData(loaded.conquerJournal);
+        }
+        
+        // Update save path
+        setSavePath(result.path || getCurrentSavePath());
+        setFileError(null);
+      } else if (!result.cancelled) {
+        setFileError(result.error || 'Could not load file');
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
-        alert("Error loading file. Please make sure it's a valid Goals Blueprint file.");
+        setFileError('Error loading file: ' + error.message);
       }
     }
   }
@@ -1385,12 +1436,24 @@ function applyTimeframe(value, options = {}) {
     // Auto-save the combined data
     autoSave(allData, (result) => {
       if (result.success) {
-        setSaveStatus('saved');
-        setSavePath(result.path || getCurrentSavePath());
-        setTimeout(() => setSaveStatus('idle'), 2000);
+        if (!result.skipped) {
+          setSaveStatus('saved');
+          setSavePath(result.path || getCurrentSavePath());
+          setFileError(null);
+          setTimeout(() => setSaveStatus('idle'), 2000);
+        }
+      } else if (result.needsLocation) {
+        setShowFileLocationPrompt(true);
+        setFileError('Please choose a file location to save your data');
+        setSaveStatus('idle');
+      } else if (result.needsReopen) {
+        setFileError(result.error || 'File needs to be reopened');
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
       } else if (result.cancelled) {
         setSaveStatus('idle');
       } else {
+        setFileError(result.error || 'Error saving file');
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
@@ -1412,8 +1475,8 @@ function applyTimeframe(value, options = {}) {
 
   return (
     <div className={`app-root ${theme}-skin`}>
-      {/* Initial save location prompt */}
-      {showSavePrompt && (
+      {/* File location prompt (first time setup) */}
+      {showFileLocationPrompt && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -1437,32 +1500,114 @@ function applyTimeframe(value, options = {}) {
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
           }}>
             <h3 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 700 }}>
-              Choose Save Location
+              Choose Your File Location
             </h3>
             <p style={{ margin: '0 0 20px', fontSize: '14px', color: 'var(--text-muted)' }}>
-              Select where you'd like to save your Goals Blueprint. Your work will auto-save to this location.
+              Choose where you want to save your Goals Blueprint file. This will be your permanent file location - all your data (Goals and Conquer Journal) will be saved here automatically.
             </p>
+            {fileError && (
+              <div style={{
+                padding: '12px',
+                background: 'rgba(248, 113, 113, 0.1)',
+                border: '1px solid rgba(248, 113, 113, 0.3)',
+                borderRadius: '8px',
+                marginBottom: '20px',
+                color: '#f87171',
+                fontSize: '13px'
+              }}>
+                {fileError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
                 className="btn btn-ghost"
                 onClick={() => {
-                  setShowSavePrompt(false);
-                  // Use IndexedDB as fallback
+                  // Can't cancel - must choose a location
+                  alert('Please choose a file location to continue using the app.');
                 }}
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                disabled
               >
-                Use Browser Storage
+                Cancel
               </button>
               <button
                 className="btn primary"
-                onClick={handleInitialSaveLocation}
+                onClick={handleChooseFileLocation}
                 disabled={saveStatus === 'saving'}
               >
-                {saveStatus === 'saving' ? 'Saving...' : 'Choose Location'}
+                {saveStatus === 'saving' ? 'Saving...' : 'Choose File Location'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* File error prompt (file can't be accessed) */}
+      {fileError && !showFileLocationPrompt && hasFileLocation() && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-primary)',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '100%',
+            border: '2px solid var(--border)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 700, color: '#f87171' }}>
+              File Access Error
+            </h3>
+            <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--text-muted)' }}>
+              {fileError}
+            </p>
+            {savePath && (
+              <p style={{ margin: '0 0 20px', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                File: {savePath}
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={async () => {
+                  // Change to new location
+                  const conquerData = getAllConquerJournalData();
+                  const allData = {
+                    ...planner,
+                    conquerJournal: conquerData
+                  };
+                  const result = await changeSaveLocation(allData);
+                  if (result.success) {
+                    setSavePath(result.path);
+                    setFileError(null);
+                  }
+                }}
+              >
+                Choose New Location
+              </button>
+              <button
+                className="btn primary"
+                onClick={handleReopenFile}
+                disabled={saveStatus === 'saving'}
+              >
+                {saveStatus === 'saving' ? 'Opening...' : 'Reopen File'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
         <div className="app-shell">
         <header className="app-hero">
           <div>
@@ -1799,7 +1944,7 @@ function applyTimeframe(value, options = {}) {
               gap: '8px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Saved to:</span>
+                <span style={{ color: 'var(--text-muted)' }}>File Location:</span>
                 <span style={{ 
                   color: 'var(--text-primary)', 
                   fontWeight: 500,
@@ -1807,8 +1952,8 @@ function applyTimeframe(value, options = {}) {
                   maxWidth: '600px',
                   fontFamily: 'monospace',
                   fontSize: '11px'
-                }} title={savePath}>
-                  {savePath}
+                }} title={savePath || 'No file location set'}>
+                  {savePath || 'No file location set - please choose a location'}
                 </span>
                 {saveStatus === 'saving' && (
                   <span style={{ color: 'var(--accent)', fontSize: '11px' }}>💾 Saving...</span>
