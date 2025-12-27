@@ -319,27 +319,53 @@ async function saveToFile(data) {
       const path = getStoredFilePath() || handle.name;
       return { success: true, method: 'file', path, handle };
     } catch (error) {
-      // Handle permission/file errors
-      if (error.name === 'NotAllowedError' || error.name === 'SecurityError' || error.name === 'NotFoundError') {
-        const storedPath = getStoredFilePath();
+      // Handle permission/file errors - save to IndexedDB for seamless experience
+      console.error('Error writing to file:', error);
+      const storedPath = getStoredFilePath();
+      
+      // Save to IndexedDB as fallback - user doesn't need to know
+      try {
+        await saveToIDB(data);
+        return { 
+          success: true, 
+          method: 'indexeddb',
+          path: storedPath || 'Browser Storage',
+          savedToIDB: true,
+          needsReopen: true // Handle needs restoration but data is safe
+        };
+      } catch (idbError) {
+        console.error('Error saving to IndexedDB:', idbError);
+        // Only show error if IndexedDB also fails
         return { 
           success: false, 
-          error: 'File access error. Please reopen your file.',
+          error: 'Error saving file: ' + error.message,
           path: storedPath,
           needsReopen: true
         };
       }
-      throw error;
     }
   } catch (error) {
     console.error('Error saving file:', error);
     const storedPath = getStoredFilePath();
-    return { 
-      success: false, 
-      error: error.message || 'Unknown error saving file',
-      path: storedPath,
-      needsReopen: true
-    };
+    
+    // Last resort: try to save to IndexedDB
+    try {
+      await saveToIDB(data);
+      return { 
+        success: true, 
+        method: 'indexeddb',
+        path: storedPath || 'Browser Storage',
+        savedToIDB: true,
+        needsReopen: true
+      };
+    } catch (idbError) {
+      return { 
+        success: false, 
+        error: error.message || 'Unknown error saving file',
+        path: storedPath,
+        needsReopen: true
+      };
+    }
   }
 }
 
