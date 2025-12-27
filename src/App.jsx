@@ -1364,9 +1364,10 @@ function applyTimeframe(value, options = {}) {
                                getStoredFileName() || 
                                'goals-blueprint.json';
       
-      // Use File System Access API if available (some mobile browsers support it)
-      // This allows saving to the same file OR saving a new copy
-      if (supportsFileSystemAccess() && window.showSaveFilePicker) {
+      // Always try File System Access API first (even if supportsFileSystemAccess() returns false)
+      // Some mobile browsers support it even if the check fails
+      // This opens the native file picker/save dialog - user can choose location and filename
+      if (window.showSaveFilePicker) {
         try {
           // Use the original filename as suggested name - user can choose to:
           // 1. Save to the same file (overwrite)
@@ -1386,6 +1387,10 @@ function applyTimeframe(value, options = {}) {
           // Store the filename they chose (could be same or new)
           const fileName = handle.name;
           localStorage.setItem('mobile_file_name', fileName);
+          // Also store in fileStorage location for consistency
+          localStorage.setItem('harvard_goals_file_name', fileName);
+          localStorage.setItem('harvard_goals_file_path', fileName);
+          localStorage.setItem('harvard_goals_file_full_path', fileName);
           
           // Also save to IndexedDB
           if (typeof saveToIDB === 'function') {
@@ -1404,8 +1409,8 @@ function applyTimeframe(value, options = {}) {
             // User cancelled
             return;
           }
-          // Fall through to download method
-          console.log('File System Access API failed, using download fallback:', error);
+          // Fall through to download method only if showSaveFilePicker truly fails
+          console.log('File System Access API not available, using download fallback:', error);
         }
       }
       
