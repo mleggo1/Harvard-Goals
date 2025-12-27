@@ -433,81 +433,109 @@ export default function App() {
     ownerName = ''
   } = planner || {};
 
-  // Initialize on mount - check for file location and load data
+  // Initialize on mount - safe initialization that never blocks rendering
   useEffect(() => {
+    let mounted = true;
+    
     async function init() {
       try {
+        // Check if initialize function exists
+        if (!initialize || typeof initialize !== 'function') {
+          console.warn('Initialize function not available');
+          if (mounted) {
+            setIsInitialized(true);
+          }
+          return;
+        }
+
         const initResult = await initialize();
+        if (!mounted) return;
         
-        // On mobile, don't show file location prompt - user can use Save As when ready
-        const isMobile = !supportsFileSystemAccess();
+        // Check if mobile
+        const isMobile = !(window.showSaveFilePicker && window.showOpenFilePicker);
         
-        // Check if we need to prompt for file location (first time) - only on desktop
-        if (initResult.needsLocation && !isMobile) {
+        // Desktop: Show file location prompt if needed
+        if (initResult && initResult.needsLocation && !isMobile) {
           setShowFileLocationPrompt(true);
           setIsInitialized(true);
           return;
         }
         
-        // On mobile with needsLocation, just continue (already initialized)
-        if (initResult.needsLocation && isMobile) {
-          return;
-        }
-        
-        // Check if file needs to be reopened
-        if (initResult.needsReopen) {
-          setFileError(initResult.error || 'File needs to be reopened');
-          setSavePath(initResult.path);
+        // Mobile: Skip file location prompt, just continue
+        if (initResult && initResult.needsLocation && isMobile) {
           setIsInitialized(true);
           return;
         }
         
-        // Check for other errors
-        if (initResult.error && !initResult.data) {
+        // Handle errors
+        if (initResult && initResult.error && !initResult.data) {
           setFileError(initResult.error);
-          setSavePath(initResult.path);
+          if (initResult.path) setSavePath(initResult.path);
           setIsInitialized(true);
           return;
         }
         
-        // Load data from file
+        // Load data if available
         if (initResult && initResult.data) {
-          const parsed = initResult.data;
-          setPlanner({
-            ...DEFAULT_STATE,
-            ...parsed,
-            ritualChecks: {
-              ...DEFAULT_STATE.ritualChecks,
-              ...(parsed.ritualChecks || {})
-            },
-            goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : []
-          });
-          
-          // Load ConquerJournal data if present
-          if (parsed.conquerJournal && typeof loadAllConquerJournalData === 'function') {
-            try {
-              loadAllConquerJournalData(parsed.conquerJournal);
-            } catch (cjError) {
-              console.error('Error loading ConquerJournal data:', cjError);
-              // Continue even if ConquerJournal fails
+          try {
+            const parsed = initResult.data;
+            setPlanner(prev => ({
+              ...DEFAULT_STATE,
+              ...prev,
+              ...parsed,
+              ritualChecks: {
+                ...DEFAULT_STATE.ritualChecks,
+                ...(parsed.ritualChecks || {})
+              },
+              goals: Array.isArray(parsed.goals) ? parsed.goals.map(hydrateGoal) : (prev.goals || [])
+            }));
+            
+            // Load ConquerJournal data if present
+            if (parsed.conquerJournal && loadAllConquerJournalData && typeof loadAllConquerJournalData === 'function') {
+              try {
+                loadAllConquerJournalData(parsed.conquerJournal);
+              } catch (cjError) {
+                console.error('Error loading ConquerJournal:', cjError);
+              }
             }
+            
+            setFileError(null);
+          } catch (parseError) {
+            console.error('Error parsing data:', parseError);
           }
-          
-          setFileError(null); // Clear any previous errors
         }
         
-        // Set the save path
-        setSavePath(initResult.path || getCurrentSavePath());
+        // Update save path
+        if (initResult && initResult.path) {
+          setSavePath(initResult.path);
+        } else if (getCurrentSavePath && typeof getCurrentSavePath === 'function') {
+          try {
+            const path = getCurrentSavePath();
+            if (path) setSavePath(path);
+          } catch {}
+        }
+        
         setIsInitialized(true);
       } catch (error) {
         console.error('Initialization error:', error);
-        setFileError('Error initializing: ' + error.message);
-        setSavePath(getCurrentSavePath());
-        // Always set initialized to true, even on error, so app can render
-        setIsInitialized(true);
+        if (mounted) {
+          setFileError('Error initializing: ' + (error.message || 'Unknown error'));
+          try {
+            if (getCurrentSavePath && typeof getCurrentSavePath === 'function') {
+              const path = getCurrentSavePath();
+              if (path) setSavePath(path);
+            }
+          } catch {}
+          setIsInitialized(true); // Always set to true so app can render
+        }
       }
     }
+    
     init();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Auto-save when planner changes - include ConquerJournal data
