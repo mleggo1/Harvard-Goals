@@ -394,36 +394,44 @@ export default function App() {
   const [isVisionCollapsed, setIsVisionCollapsed] = useState(false);
   const [dueDateRange, setDueDateRange] = useState(30);
   
-  // File storage state
-  const [savePath, setSavePath] = useState(() => getCurrentSavePath());
+  // File storage state - with safe initialization
+  const [savePath, setSavePath] = useState(() => {
+    try {
+      return getCurrentSavePath ? getCurrentSavePath() : 'Browser Storage';
+    } catch {
+      return 'Browser Storage';
+    }
+  });
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
   const [showFileLocationPrompt, setShowFileLocationPrompt] = useState(false);
   const [fileError, setFileError] = useState(null);
-  // On mobile, start as true so app renders immediately (initialization happens in background)
+  // Always start as initialized on mobile to ensure app renders immediately
   const [isInitialized, setIsInitialized] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return !supportsFileSystemAccess(); // true on mobile, false on desktop
-      } catch {
-        return true; // Default to true if check fails
-      }
+    try {
+      if (typeof window === 'undefined') return false;
+      // Check if mobile - if File System Access API is not available, we're on mobile
+      const isMobile = !(window.showSaveFilePicker && window.showOpenFilePicker);
+      return isMobile; // true on mobile (renders immediately), false on desktop (waits for init)
+    } catch {
+      return true; // Default to true to ensure app renders
     }
-    return false;
   });
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMobileSettings, setShowMobileSettings] = useState(false);
 
+  // Safe destructuring with defaults
   const {
-    vision10,
-    notes,
-    goals,
-    focusWord,
-    weeklyMantra,
-    celebrationPlan,
-    ritualChecks,
-    theme,
-    ownerName
-  } = planner;
+    vision10 = '',
+    notes = '',
+    goals = [],
+    focusWord = '',
+    weeklyMantra = '',
+    celebrationPlan = '',
+    ritualChecks = {},
+    theme = 'night',
+    ownerName = ''
+  } = planner || {};
 
   // Initialize on mount - check for file location and load data
   useEffect(() => {
