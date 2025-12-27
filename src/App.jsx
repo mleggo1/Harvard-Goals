@@ -595,6 +595,11 @@ export default function App() {
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
     });
+    } catch (error) {
+      console.error('Error in auto-save:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
   }, [planner, isInitialized]);
 
   // Auto-resize all textareas to show ALL content - print will capture what's visible on screen
