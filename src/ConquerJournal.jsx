@@ -693,39 +693,12 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [], on
                       fontFamily: 'inherit'
                     }}
                   />
-                  {saveStatus === 'saving' && <span style={{ fontSize: '11px', color: 'var(--accent)' }}>💾 Saving...</span>}
-                  {saveStatus === 'saved' && (
-                    <span style={{ fontSize: '11px', color: '#10b981' }}>✓ Saved</span>
-                  )}
-                  {saveStatus === 'error' && (
-                    <span style={{ fontSize: '11px', color: '#f87171' }}>⚠ Error saving</span>
-                  )}
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {progress.percentage}% complete
                   </span>
                 </div>
               )}
             </div>
-            {/* Save status display only (removed "saved to" line per user request) */}
-            {saveStatus !== 'idle' && (
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center',
-                marginTop: '12px',
-                padding: '8px 16px'
-              }}>
-                {saveStatus === 'saving' && (
-                  <span style={{ color: 'var(--accent)', fontSize: '13px' }}>💾 Saving...</span>
-                )}
-                {saveStatus === 'saved' && (
-                  <span style={{ color: '#10b981', fontSize: '13px' }}>✓ Saved</span>
-                )}
-                {saveStatus === 'error' && (
-                  <span style={{ color: '#f87171', fontSize: '13px' }}>⚠ Error saving</span>
-                )}
-              </div>
-            )}
           </div>
         </header>
 
