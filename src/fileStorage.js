@@ -238,15 +238,16 @@ async function saveToFile(data) {
     let handle = getCurrentFileHandle();
     
     if (!supportsFileSystemAccess()) {
-      // Mobile: We can't write to the file directly
-      // Just save to IndexedDB - user will use Save button to download file
+      // Mobile: We can't write directly to files
+      // Save to IndexedDB (this is our source of truth on mobile)
+      // The Save button will download the file with the stored filename
       await saveToIDB(data);
       const storedPath = getStoredFilePath();
       return { 
         success: true, 
         method: 'indexeddb', 
         path: storedPath || 'Mobile Storage',
-        savedToIDB: true // Data saved to IndexedDB, user can download manually
+        savedToIDB: true // Data saved to IndexedDB, Save button will download file
       };
     }
 
@@ -520,6 +521,10 @@ async function loadFromFileInput(file) {
     
     // IMPORTANT: Set that we have a file location - this prevents popup from showing again
     setHasFileLocation(true);
+    
+    // Note: On mobile, we can't get a file handle from file input
+    // The file input doesn't provide a writable handle
+    // We'll use download method for saving on mobile
     
     // Save to IndexedDB immediately (this is our source of truth on mobile)
     await saveToIDB(data);
