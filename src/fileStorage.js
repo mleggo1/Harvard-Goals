@@ -239,14 +239,14 @@ async function saveToFile(data) {
     
     if (!supportsFileSystemAccess()) {
       // Mobile: We can't write to the file directly
-      // Save to IndexedDB and return the stored path
+      // Just save to IndexedDB - user will use Save button to download file
       await saveToIDB(data);
       const storedPath = getStoredFilePath();
       return { 
         success: true, 
         method: 'indexeddb', 
         path: storedPath || 'Mobile Storage',
-        needsReopen: true // User needs to download/export to update the file
+        savedToIDB: true // Data saved to IndexedDB, user can download manually
       };
     }
 

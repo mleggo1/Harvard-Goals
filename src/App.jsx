@@ -13,7 +13,8 @@ import {
   hasFileLocation,
   getStoredFilePath,
   getStoredFileName,
-  supportsFileSystemAccess
+  supportsFileSystemAccess,
+  saveToIDB
 } from "./fileStorage.js";
 import { getAllConquerJournalData, loadAllConquerJournalData } from "./ConquerJournal.jsx";
 
@@ -1155,6 +1156,50 @@ function applyTimeframe(value, options = {}) {
     }
   }
 
+  // Simple Save function for mobile - saves all data with stored filename
+  function saveMobileFile() {
+    try {
+      // Get ConquerJournal data and combine with planner
+      const conquerData = getAllConquerJournalData();
+      const allData = {
+        ...planner,
+        conquerJournal: conquerData
+      };
+      
+      // Get stored filename or use default
+      const storedFileName = getStoredFileName();
+      let filename = storedFileName || "goals-blueprint.json";
+      
+      // Ensure it has .json extension
+      if (!filename.endsWith('.json')) {
+        filename = filename.replace(/\.[^/.]+$/, '') + '.json';
+      }
+      
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(allData, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      
+      // Save to IndexedDB as backup
+      saveToIDB(allData);
+      
+      // Show success feedback
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error) {
+      console.error('Error saving file:', error);
+      setSaveStatus('error');
+      setFileError('Error saving file: ' + error.message);
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  }
+
   function downloadPlanJson() {
     // Download with the stored filename if available, otherwise use default
     const storedPath = getCurrentSavePath();
@@ -1854,18 +1899,43 @@ function applyTimeframe(value, options = {}) {
                     </button>
                   </>
                 ) : (
-                  // Mobile: Always show Big 5 and Import buttons, group others in dropdown
+                  // Mobile: Simple Import and Save buttons, plus Big 5
                   <>
                     <input
                       type="file"
                       accept=".json"
                       onChange={loadPlanJson}
-                      id="file-input"
+                      id="file-input-mobile"
                       style={{ display: "none" }}
                     />
-                    <label htmlFor="file-input" className="btn btn-ghost" title="Import from file">
+                    <label 
+                      htmlFor="file-input-mobile" 
+                      className="btn btn-ghost" 
+                      title="Import your Goals Blueprint file"
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.15)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        fontWeight: 600
+                      }}
+                    >
                       📥 Import
                     </label>
+                    <button
+                      className="btn btn-ghost"
+                      onClick={saveMobileFile}
+                      title="Save all changes to your file"
+                      disabled={saveStatus === 'saving'}
+                      style={{
+                        background: saveStatus === 'saving' 
+                          ? 'rgba(16, 185, 129, 0.3)' 
+                          : 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        fontWeight: 600,
+                        cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {saveStatus === 'saving' ? '💾 Saving...' : '💾 Save'}
+                    </button>
                     <button
                       className="btn btn-ghost big5-shortcut-btn"
                       onClick={scrollToBig5}
