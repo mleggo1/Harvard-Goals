@@ -441,9 +441,8 @@ export default function App() {
           return;
         }
         
-        // On mobile with needsLocation, just initialize without prompt
+        // On mobile with needsLocation, just continue (already initialized)
         if (initResult.needsLocation && isMobile) {
-          setIsInitialized(true);
           return;
         }
         
