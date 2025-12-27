@@ -511,15 +511,17 @@ async function loadFromFileInput(file) {
     const text = await file.text();
     const data = JSON.parse(text);
     
-    // Store file name
+    // Store file name and mark that we have a location
     const fileName = file.name || 'goals-blueprint.json';
     localStorage.setItem(FILE_NAME_KEY, fileName);
     localStorage.setItem(FILE_PATH_KEY, fileName);
     localStorage.setItem(FILE_FULL_PATH_KEY, fileName);
     localStorage.setItem(FILE_HANDLE_KEY, 'has_path');
+    
+    // IMPORTANT: Set that we have a file location - this prevents popup from showing again
     setHasFileLocation(true);
     
-    // Save to IndexedDB
+    // Save to IndexedDB immediately (this is our source of truth on mobile)
     await saveToIDB(data);
     
     return data;
@@ -570,8 +572,21 @@ async function autoSave(data, onSaveComplete = null) {
 async function initialize() {
   try {
     // Check if we have a file location set
-    if (!hasFileLocation()) {
-      // First time - no file location set
+    // Also check if we have any stored path data (for backward compatibility)
+    const hasLocation = hasFileLocation();
+    const storedPath = getStoredFilePath();
+    
+    // Also check if we have data in IndexedDB (means file was set before)
+    const hasData = await loadFromIDB();
+    
+    // If we have data in IndexedDB, we definitely had a file location before
+    // Set the location flag to prevent popup from showing
+    if (hasData && !hasLocation && storedPath) {
+      setHasFileLocation(true);
+    }
+    
+    if (!hasLocation && !storedPath && !hasData) {
+      // First time - no file location set at all, and no data
       return { 
         needsLocation: true,
         path: null,
@@ -579,7 +594,33 @@ async function initialize() {
       };
     }
 
-    // We have a file location - try to load from it
+    // We have a file location (or stored path) - try to load from it
+    // On mobile, we load from IndexedDB (which has the latest data)
+    // On desktop, we try to load from the file
+    
+    if (!supportsFileSystemAccess()) {
+      // Mobile: Load from IndexedDB (this is where we save on mobile)
+      const idbData = await loadFromIDB();
+      if (idbData) {
+        return {
+          data: idbData,
+          path: storedPath || getCurrentSavePath() || 'Mobile Storage',
+          method: 'indexeddb'
+        };
+      } else {
+        // No data in IndexedDB, but we have a location set
+        // This means the file was set but data hasn't been saved yet
+        // Return the path so user knows where it will be saved
+        return {
+          data: null,
+          path: storedPath || getCurrentSavePath(),
+          method: 'mobile',
+          needsData: true // Data will be saved on first change
+        };
+      }
+    }
+
+    // Desktop: Try to load from file
     const loadResult = await loadFromFile();
     
     if (loadResult.success) {
@@ -589,15 +630,35 @@ async function initialize() {
         method: loadResult.method || 'file'
       };
     } else {
-      // Could not load - return error info
+      // Could not load - but we have a location set
+      // Try IndexedDB as fallback
+      const idbData = await loadFromIDB();
+      if (idbData) {
+        return {
+          data: idbData,
+          path: loadResult.path || getCurrentSavePath(),
+          method: 'indexeddb'
+        };
+      }
+      
+      // No data anywhere - return error info
       return {
         needsReopen: loadResult.needsReopen || false,
-        error: loadResult.error,
+        error: loadResult.error || 'Could not load file',
         path: loadResult.path || getCurrentSavePath()
       };
     }
   } catch (error) {
     console.error('Initialization error:', error);
+    // Try IndexedDB as last resort
+    const idbData = await loadFromIDB();
+    if (idbData) {
+      return {
+        data: idbData,
+        path: getCurrentSavePath() || 'Browser Storage',
+        method: 'indexeddb'
+      };
+    }
     return { 
       error: error.message,
       path: getCurrentSavePath()

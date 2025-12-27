@@ -1061,6 +1061,7 @@ function applyTimeframe(value, options = {}) {
         
         setSavePath(result.path || result.fileName);
         setSaveStatus('saved');
+        // IMPORTANT: Close the prompt and mark that location is set
         setShowFileLocationPrompt(false);
         setFileError(null);
         setTimeout(() => setSaveStatus('idle'), 2000);
@@ -1206,6 +1207,11 @@ function applyTimeframe(value, options = {}) {
       
       // Update save path to show the imported file path
       setSavePath(getCurrentSavePath());
+      
+      // IMPORTANT: Close the file location prompt if it's open
+      // The file location is now set via loadFromFileInput
+      setShowFileLocationPrompt(false);
+      setFileError(null);
       
       // Reset file input
       event.target.value = "";
@@ -1475,7 +1481,7 @@ function applyTimeframe(value, options = {}) {
 
   return (
     <div className={`app-root ${theme}-skin`}>
-      {/* File location prompt (first time setup) */}
+      {/* File location prompt (first time setup) - Beautiful, clear UI */}
       {showFileLocationPrompt && (
         <div style={{
           position: 'fixed',
@@ -1483,61 +1489,138 @@ function applyTimeframe(value, options = {}) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 10000,
-          padding: '20px'
+          padding: '20px',
+          animation: 'fadeIn 0.3s ease'
         }}>
           <div style={{
             background: 'var(--bg-primary)',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '500px',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '520px',
             width: '100%',
             border: '2px solid var(--border)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+            animation: 'slideUp 0.3s ease'
           }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 700 }}>
-              Choose Your File Location
-            </h3>
-            <p style={{ margin: '0 0 20px', fontSize: '14px', color: 'var(--text-muted)' }}>
-              Choose where you want to save your Goals Blueprint file. This will be your permanent file location - all your data (Goals and Conquer Journal) will be saved here automatically.
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              marginBottom: '16px' 
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px'
+              }}>
+                📁
+              </div>
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '20px', 
+                fontWeight: 700,
+                color: 'var(--text-primary)'
+              }}>
+                Choose Your File Location
+              </h3>
+            </div>
+            
+            <p style={{ 
+              margin: '0 0 24px', 
+              fontSize: '15px', 
+              color: 'var(--text-muted)',
+              lineHeight: '1.6'
+            }}>
+              Choose where you want to save your Goals Blueprint file. This will be your <strong style={{ color: 'var(--text-primary)' }}>permanent file location</strong> - all your data (Goals and Conquer Journal) will be saved here automatically.
             </p>
+            
             {fileError && (
               <div style={{
-                padding: '12px',
-                background: 'rgba(248, 113, 113, 0.1)',
-                border: '1px solid rgba(248, 113, 113, 0.3)',
-                borderRadius: '8px',
-                marginBottom: '20px',
+                padding: '14px 16px',
+                background: 'rgba(248, 113, 113, 0.15)',
+                border: '1px solid rgba(248, 113, 113, 0.4)',
+                borderRadius: '10px',
+                marginBottom: '24px',
                 color: '#f87171',
-                fontSize: '13px'
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}>
-                {fileError}
+                <span>⚠️</span>
+                <span>{fileError}</span>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  // Can't cancel - must choose a location
-                  alert('Please choose a file location to continue using the app.');
-                }}
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                disabled
-              >
-                Cancel
-              </button>
+            
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end',
+              marginTop: '28px'
+            }}>
               <button
                 className="btn primary"
                 onClick={handleChooseFileLocation}
                 disabled={saveStatus === 'saving'}
+                style={{
+                  minWidth: '180px',
+                  padding: '12px 24px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  background: saveStatus === 'saving' 
+                    ? 'rgba(59, 130, 246, 0.5)' 
+                    : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: saveStatus === 'saving' 
+                    ? 'none' 
+                    : '0 4px 12px rgba(59, 130, 246, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  if (saveStatus !== 'saving') {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (saveStatus !== 'saving') {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                  }
+                }}
               >
-                {saveStatus === 'saving' ? 'Saving...' : 'Choose File Location'}
+                {saveStatus === 'saving' ? (
+                  <>💾 Saving...</>
+                ) : supportsFileSystemAccess() ? (
+                  <>📂 Choose File Location</>
+                ) : (
+                  <>📥 Import Your File</>
+                )}
               </button>
             </div>
+            
+            <p style={{
+              margin: '20px 0 0',
+              fontSize: '12px',
+              color: 'var(--text-muted)',
+              textAlign: 'center',
+              fontStyle: 'italic'
+            }}>
+              This is a one-time setup. Your file location will be remembered forever.
+            </p>
           </div>
         </div>
       )}
