@@ -399,7 +399,17 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
   const [showFileLocationPrompt, setShowFileLocationPrompt] = useState(false);
   const [fileError, setFileError] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // On mobile, start as true so app renders immediately (initialization happens in background)
+  const [isInitialized, setIsInitialized] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return !supportsFileSystemAccess(); // true on mobile, false on desktop
+      } catch {
+        return true; // Default to true if check fails
+      }
+    }
+    return false;
+  });
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
