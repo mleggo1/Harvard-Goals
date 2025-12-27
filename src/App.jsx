@@ -2287,32 +2287,8 @@ function applyTimeframe(value, options = {}) {
                     </button>
                   </>
                 ) : (
-                  // Mobile: Simple Open/Save As buttons + Big 5 + Settings cog
+                  // Mobile: Big 5 + Settings cog (Open/Save As moved to settings menu)
                   <>
-                    <button
-                      className="btn btn-ghost"
-                      onClick={handleMobileOpen}
-                      title="Open your Goals Blueprint file"
-                      style={{
-                        background: 'rgba(59, 130, 246, 0.15)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        fontWeight: 600
-                      }}
-                    >
-                      📂 Open
-                    </button>
-                    <button
-                      className="btn btn-ghost"
-                      onClick={handleMobileSaveAs}
-                      title="Save As - choose file location and name"
-                      style={{
-                        background: 'rgba(16, 185, 129, 0.15)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        fontWeight: 600
-                      }}
-                    >
-                      💾 Save As
-                    </button>
                     <button
                       className="btn btn-ghost big5-shortcut-btn"
                       onClick={scrollToBig5}
