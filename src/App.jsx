@@ -1940,7 +1940,9 @@ function applyTimeframe(value, options = {}) {
                 📔 Conquer Journal
               </button>
             </div>
-            <h1 className="hero-title">{ownerName ? `🚀 ${ownerName}'s Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}` : `🚀 Your Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}`}</h1>
+            <h1 className="hero-title">
+              {ownerName ? `🚀 ${ownerName}'s Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}` : `🚀 Your Life Goals Blueprint${totalGoals > 0 ? ` (${totalGoals} ${totalGoals === 1 ? 'Goal' : 'Goals'})` : ''}`}
+            </h1>
             <p className="hero-subhead">
               Turn your biggest dreams into a clear plan. Write down your goals, set your focus, take action every day, and share your progress with people who support you.
             </p>
