@@ -2,22 +2,54 @@ import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import "./App.css";
 import ConquerJournal from "./ConquerJournal.jsx";
-import { 
-  autoSave, 
-  initialize, 
-  getCurrentSavePath, 
-  changeSaveLocation,
-  loadFromFile,
-  loadFromFileInput,
-  chooseFileLocation,
-  hasFileLocation,
-  getStoredFilePath,
-  getStoredFileName,
-  supportsFileSystemAccess,
-  saveToIDB,
-  saveToFile
-} from "./fileStorage.js";
-import { getAllConquerJournalData, loadAllConquerJournalData } from "./ConquerJournal.jsx";
+
+// Safe imports with error handling
+let autoSave, initialize, getCurrentSavePath, changeSaveLocation, loadFromFile, loadFromFileInput, chooseFileLocation, hasFileLocation, getStoredFilePath, getStoredFileName, supportsFileSystemAccess, saveToIDB, saveToFile;
+let getAllConquerJournalData, loadAllConquerJournalData;
+
+try {
+  const fileStorage = require("./fileStorage.js");
+  autoSave = fileStorage.autoSave;
+  initialize = fileStorage.initialize;
+  getCurrentSavePath = fileStorage.getCurrentSavePath;
+  changeSaveLocation = fileStorage.changeSaveLocation;
+  loadFromFile = fileStorage.loadFromFile;
+  loadFromFileInput = fileStorage.loadFromFileInput;
+  chooseFileLocation = fileStorage.chooseFileLocation;
+  hasFileLocation = fileStorage.hasFileLocation;
+  getStoredFilePath = fileStorage.getStoredFilePath;
+  getStoredFileName = fileStorage.getStoredFileName;
+  supportsFileSystemAccess = fileStorage.supportsFileSystemAccess;
+  saveToIDB = fileStorage.saveToIDB;
+  saveToFile = fileStorage.saveToFile;
+} catch (error) {
+  console.error('Error loading fileStorage:', error);
+  // Provide fallback functions
+  supportsFileSystemAccess = () => false;
+  getCurrentSavePath = () => 'Browser Storage';
+  initialize = async () => ({ data: null, path: 'Browser Storage' });
+  autoSave = async () => ({ success: true });
+  hasFileLocation = () => false;
+  getStoredFilePath = () => null;
+  getStoredFileName = () => null;
+  changeSaveLocation = async () => ({ success: false });
+  loadFromFile = async () => ({ success: false });
+  loadFromFileInput = async () => ({ success: false });
+  chooseFileLocation = async () => ({ success: false });
+  saveToIDB = async () => {};
+  saveToFile = async () => ({ success: false });
+}
+
+try {
+  const conquerJournal = require("./ConquerJournal.jsx");
+  getAllConquerJournalData = conquerJournal.getAllConquerJournalData;
+  loadAllConquerJournalData = conquerJournal.loadAllConquerJournalData;
+} catch (error) {
+  console.error('Error loading ConquerJournal:', error);
+  // Provide fallback functions
+  getAllConquerJournalData = () => ({ entries: {}, weekly: {}, monthly: {} });
+  loadAllConquerJournalData = () => {};
+}
 
 const STORAGE_KEY = "harvard_goals_v2";
 const OWNER_DEVICE_KEY = "harvard_goals_owner_device";
