@@ -313,6 +313,10 @@ async function saveToFile(data) {
       await writable.write(JSON.stringify(data, null, 2));
       await writable.close();
 
+      // Restore handle in storage (in case it was lost and just restored)
+      const fileName = handle.name;
+      saveFileLocation(handle, fileName, fileName);
+
       // Also save to IndexedDB as backup
       await saveToIDB(data);
 
