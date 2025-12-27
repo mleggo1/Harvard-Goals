@@ -1909,7 +1909,7 @@ function applyTimeframe(value, options = {}) {
         </div>
       )}
 
-        <div className="app-shell">
+        <div className="app-shell" style={{ width: '100%', minHeight: '50vh' }}>
         <header className="app-hero">
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
