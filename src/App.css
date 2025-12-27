@@ -3576,14 +3576,27 @@ body::before {
   gap: 4px !important;
 }
 
-/* Mobile: Reorder sections in column-side - Big 5, Goals Due Soon, Momentum Rituals, Weekly Focus first */
+/* Mobile: Reorder sections to appear right after DAILY MANTRA */
 @media (max-width: 768px) {
-  .column-side {
+  /* Make planner-grid a flex container to reorder columns */
+  .planner-grid {
     display: flex;
     flex-direction: column;
   }
   
-  /* Reorder sections on mobile: Big 5, Goals Due Soon, Momentum Rituals, Weekly Focus first, then Momentum Dashboard */
+  /* Make right column appear first (right after focus-section) */
+  .column-side {
+    display: flex;
+    flex-direction: column;
+    order: 1;
+  }
+  
+  /* Make left column appear after right column */
+  .column[data-section="left-column"] {
+    order: 2;
+  }
+  
+  /* Reorder sections within right column: Big 5, Goals Due Soon, Momentum Rituals, Weekly Focus first, then Momentum Dashboard */
   .column-side [data-section="big5"] {
     order: 1;
   }

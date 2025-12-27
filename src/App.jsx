@@ -2673,7 +2673,7 @@ function applyTimeframe(value, options = {}) {
         </section>
 
         <main className="planner-grid">
-          <section className="column">
+          <section className="column" data-section="left-column">
             <article className={`card card-vision ${isVisionCollapsed ? 'collapsed' : ''}`}>
               <header className="card-header">
                 <div>
