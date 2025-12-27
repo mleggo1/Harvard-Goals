@@ -421,9 +421,18 @@ export default function App() {
       try {
         const initResult = await initialize();
         
-        // Check if we need to prompt for file location (first time)
-        if (initResult.needsLocation) {
+        // On mobile, don't show file location prompt - user can use Save As when ready
+        const isMobile = !supportsFileSystemAccess();
+        
+        // Check if we need to prompt for file location (first time) - only on desktop
+        if (initResult.needsLocation && !isMobile) {
           setShowFileLocationPrompt(true);
+          setIsInitialized(true);
+          return;
+        }
+        
+        // On mobile with needsLocation, just initialize without prompt
+        if (initResult.needsLocation && isMobile) {
           setIsInitialized(true);
           return;
         }
@@ -458,8 +467,13 @@ export default function App() {
           });
           
           // Load ConquerJournal data if present
-          if (parsed.conquerJournal) {
-            loadAllConquerJournalData(parsed.conquerJournal);
+          if (parsed.conquerJournal && typeof loadAllConquerJournalData === 'function') {
+            try {
+              loadAllConquerJournalData(parsed.conquerJournal);
+            } catch (cjError) {
+              console.error('Error loading ConquerJournal data:', cjError);
+              // Continue even if ConquerJournal fails
+            }
           }
           
           setFileError(null); // Clear any previous errors
@@ -472,6 +486,7 @@ export default function App() {
         console.error('Initialization error:', error);
         setFileError('Error initializing: ' + error.message);
         setSavePath(getCurrentSavePath());
+        // Always set initialized to true, even on error, so app can render
         setIsInitialized(true);
       }
     }
@@ -1187,60 +1202,94 @@ function applyTimeframe(value, options = {}) {
 
   // Simple mobile Open function - loads file from file picker
   async function handleMobileOpen() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.style.display = 'none';
-    document.body.appendChild(input);
-    
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        try {
-          const text = await file.text();
-          const data = JSON.parse(text);
-          
-          // Load planner data
-          if (data.vision10 !== undefined) {
-            setPlanner(data);
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            // Load planner data
+            if (data.vision10 !== undefined) {
+              setPlanner(data);
+            }
+            
+            // Load ConquerJournal data if present
+            if (data.conquerJournal && typeof loadAllConquerJournalData === 'function') {
+              try {
+                loadAllConquerJournalData(data.conquerJournal);
+              } catch (cjError) {
+                console.error('Error loading ConquerJournal data:', cjError);
+                // Continue even if ConquerJournal fails
+              }
+            }
+            
+            // Store filename for future saves
+            const fileName = file.name || 'goals-blueprint.json';
+            localStorage.setItem('mobile_file_name', fileName);
+            
+            // Save to IndexedDB as backup
+            if (typeof saveToIDB === 'function') {
+              try {
+                await saveToIDB(data);
+              } catch (idbError) {
+                console.error('Error saving to IndexedDB:', idbError);
+                // Continue even if IndexedDB fails
+              }
+            }
+            
+            setFileError(null);
+          } catch (error) {
+            console.error('Error loading file:', error);
+            setFileError('Error loading file: ' + error.message);
           }
-          
-          // Load ConquerJournal data if present
-          if (data.conquerJournal) {
-            loadAllConquerJournalData(data.conquerJournal);
-          }
-          
-          // Store filename for future saves
-          const fileName = file.name || 'goals-blueprint.json';
-          localStorage.setItem('mobile_file_name', fileName);
-          
-          // Save to IndexedDB as backup
-          await saveToIDB(data);
-          
-          setFileError(null);
-        } catch (error) {
-          console.error('Error loading file:', error);
-          setFileError('Error loading file: ' + error.message);
         }
-      }
-      document.body.removeChild(input);
-    };
-    
-    input.click();
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+      };
+      
+      input.oncancel = () => {
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+      };
+      
+      input.click();
+    } catch (error) {
+      console.error('Error setting up file input:', error);
+      setFileError('Error opening file picker: ' + error.message);
+    }
   }
 
   // Simple mobile Save As function - saves to user's chosen location
   async function handleMobileSaveAs() {
     try {
-      // Get ConquerJournal data and combine with planner
-      const conquerData = getAllConquerJournalData();
+      // Get ConquerJournal data and combine with planner (with error handling)
+      let conquerData = null;
+      if (typeof getAllConquerJournalData === 'function') {
+        try {
+          conquerData = getAllConquerJournalData();
+        } catch (cjError) {
+          console.error('Error getting ConquerJournal data:', cjError);
+          // Continue without ConquerJournal data if it fails
+        }
+      }
+      
       const allData = {
         ...planner,
-        conquerJournal: conquerData
+        ...(conquerData ? { conquerJournal: conquerData } : {})
       };
       
       // Use File System Access API if available (some mobile browsers support it)
-      if (supportsFileSystemAccess()) {
+      if (supportsFileSystemAccess() && window.showSaveFilePicker) {
         try {
           const handle = await window.showSaveFilePicker({
             suggestedName: localStorage.getItem('mobile_file_name') || 'goals-blueprint.json',
@@ -1259,7 +1308,14 @@ function applyTimeframe(value, options = {}) {
           localStorage.setItem('mobile_file_name', fileName);
           
           // Also save to IndexedDB
-          await saveToIDB(allData);
+          if (typeof saveToIDB === 'function') {
+            try {
+              await saveToIDB(allData);
+            } catch (idbError) {
+              console.error('Error saving to IndexedDB:', idbError);
+              // Continue even if IndexedDB fails
+            }
+          }
           
           setFileError(null);
           return;
@@ -1269,6 +1325,7 @@ function applyTimeframe(value, options = {}) {
             return;
           }
           // Fall through to download method
+          console.log('File System Access API failed, using download fallback:', error);
         }
       }
       
@@ -1290,7 +1347,14 @@ function applyTimeframe(value, options = {}) {
       URL.revokeObjectURL(url);
       
       // Also save to IndexedDB
-      await saveToIDB(allData);
+      if (typeof saveToIDB === 'function') {
+        try {
+          await saveToIDB(allData);
+        } catch (idbError) {
+          console.error('Error saving to IndexedDB:', idbError);
+          // Continue even if IndexedDB fails
+        }
+      }
       
       setFileError(null);
     } catch (error) {
