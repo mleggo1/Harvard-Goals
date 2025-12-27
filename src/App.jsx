@@ -416,7 +416,6 @@ export default function App() {
       return true; // Default to true to ensure app renders
     }
   });
-  const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSettings, setShowMobileSettings] = useState(false);
   const [showDesktopSettings, setShowDesktopSettings] = useState(false);
@@ -1497,18 +1496,19 @@ function applyTimeframe(value, options = {}) {
     }
   }
 
-  // Close export menu when clicking outside
+
+  // Close desktop settings menu when clicking outside
   useEffect(() => {
-    if (showExportMenu) {
+    if (showDesktopSettings) {
       const handleClickOutside = (event) => {
-        if (!event.target.closest('[data-export-menu]')) {
-          setShowExportMenu(false);
+        if (!event.target.closest('[data-desktop-settings]')) {
+          setShowDesktopSettings(false);
         }
       };
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showExportMenu]);
+  }, [showDesktopSettings]);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -2052,11 +2052,13 @@ function applyTimeframe(value, options = {}) {
                           background: 'var(--bg-primary)',
                           border: '2px solid var(--border)',
                           borderRadius: '12px',
-                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(56, 189, 248, 0.2)',
                           zIndex: 10002,
-                          minWidth: '200px',
-                          padding: '12px',
-                          marginTop: '4px'
+                          minWidth: '220px',
+                          padding: '8px',
+                          marginTop: '4px',
+                          backdropFilter: 'blur(10px)',
+                          overflow: 'visible'
                         }}>
                         <button 
                           className="btn btn-ghost" 
@@ -2070,11 +2072,51 @@ function applyTimeframe(value, options = {}) {
                             justifyContent: 'flex-start',
                             padding: '12px 16px',
                             borderRadius: '8px',
-                            marginBottom: '8px',
-                            textAlign: 'left'
+                            marginBottom: '4px',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
                           }}
                         >
                           📂 Open
+                        </button>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleChangeSaveLocation();
+                            setShowDesktopSettings(false);
+                          }}
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            marginBottom: '4px',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          💾 Save As
                         </button>
                         <input
                           type="file"
@@ -2094,20 +2136,37 @@ function applyTimeframe(value, options = {}) {
                             justifyContent: 'flex-start',
                             padding: '12px 16px',
                             borderRadius: '8px',
-                            marginBottom: '8px',
+                            marginBottom: '4px',
                             textAlign: 'left',
                             cursor: 'pointer',
-                            display: 'block'
+                            display: 'block',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease'
                           }}
                           onClick={() => setShowDesktopSettings(false)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
                         >
                           📥 Import
                         </label>
+                        <div style={{
+                          height: '1px',
+                          background: 'var(--border)',
+                          margin: '8px 0',
+                          opacity: 0.5
+                        }} />
                         <button 
                           className="btn btn-ghost" 
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleChangeSaveLocation();
+                            downloadPlanJson();
                             setShowDesktopSettings(false);
                           }}
                           style={{ 
@@ -2115,101 +2174,81 @@ function applyTimeframe(value, options = {}) {
                             justifyContent: 'flex-start',
                             padding: '12px 16px',
                             borderRadius: '8px',
-                            marginBottom: '8px',
-                            textAlign: 'left'
+                            marginBottom: '4px',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
                           }}
                         >
-                          📁 Change Location
+                          💾 Download Backup
                         </button>
-                        <div style={{
-                          height: '1px',
-                          background: 'var(--border)',
-                          margin: '8px 0',
-                          opacity: 0.5
-                        }} />
-                        <div style={{ position: 'relative', display: 'block' }} data-export-menu>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowExportMenu(!showExportMenu);
-                            }}
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              marginBottom: '8px',
-                              textAlign: 'left'
-                            }}
-                          >
-                            📤 Export {showExportMenu ? '▲' : '▼'}
-                          </button>
-                      {showExportMenu && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          right: 0,
-                          marginTop: '4px',
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                          zIndex: 1000,
-                          minWidth: '150px',
-                          padding: '4px'
-                        }}>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={() => {
-                              downloadPlanJson();
-                              setShowExportMenu(false);
-                            }}
-                            title="Download backup copy"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '8px 12px',
-                              borderRadius: '4px'
-                            }}
-                          >
-                            💾 Download
-                          </button>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={() => {
-                              exportGoalsToPdf();
-                              setShowExportMenu(false);
-                            }}
-                            title="Export to PDF"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '8px 12px',
-                              borderRadius: '4px'
-                            }}
-                          >
-                            📄 PDF
-                          </button>
-                          <button 
-                            className="btn btn-ghost" 
-                            onClick={() => {
-                              printPage();
-                              setShowExportMenu(false);
-                            }}
-                            title="Print"
-                            style={{ 
-                              width: '100%', 
-                              justifyContent: 'flex-start',
-                              padding: '8px 12px',
-                              borderRadius: '4px'
-                            }}
-                          >
-                            🖨 Print
-                          </button>
-                        </div>
-                      )}
-                        </div>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            exportGoalsToPdf();
+                            setShowDesktopSettings(false);
+                          }}
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            marginBottom: '4px',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          📄 Export to PDF
+                        </button>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printPage();
+                            setShowDesktopSettings(false);
+                          }}
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            marginBottom: '4px',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            background: 'transparent',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          🖨 Print
+                        </button>
                       </div>
                     )}
                     </div>
