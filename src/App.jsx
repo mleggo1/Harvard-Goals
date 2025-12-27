@@ -2196,6 +2196,9 @@ function applyTimeframe(value, options = {}) {
                           </button>
                         </div>
                       )}
+                        </div>
+                      </div>
+                    )}
                     </div>
                     <button
                       className="btn btn-ghost big5-shortcut-btn"
