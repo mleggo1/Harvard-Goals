@@ -518,6 +518,31 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [], on
     entry.actionsTomorrow.some(a => a.trim()) &&
     entry.dayScore !== null;
 
+  // Get missing sections
+  function getMissingSections() {
+    const missing = [];
+    const sections = [
+      { key: 'gratitudes', label: 'Gratitudes', emoji: '🙏', check: () => entry.gratitudes.some(g => g.trim()) },
+      { key: 'movement', label: 'Body Check', emoji: '💪', check: () => Object.values(entry.movement).some(v => v) || entry.movement.rest },
+      { key: 'currentGoals', label: 'Current Goals', emoji: '🎯', check: () => entry.currentGoals.some(g => g.trim()) },
+      { key: 'actionsToday', label: 'Actions Today', emoji: '✅', check: () => entry.actionsToday.some(a => a.trim()) },
+      { key: 'actionsTomorrow', label: 'Actions Tomorrow', emoji: '📋', check: () => entry.actionsTomorrow.some(a => a.trim()) },
+      { key: 'decisiveMove', label: 'Decisive Move', emoji: '⚡', check: () => entry.decisiveMove.trim() },
+      { key: 'identityStatement', label: 'Identity Statement', emoji: '🦋', check: () => entry.identityStatement.trim() },
+      { key: 'dayScore', label: 'Day Score', emoji: '⭐', check: () => entry.dayScore !== null }
+    ];
+    
+    sections.forEach(section => {
+      if (!section.check()) {
+        missing.push(section);
+      }
+    });
+    
+    return missing;
+  }
+
+  const missingSections = getMissingSections();
+
   // Calculate analytics
   const analytics = useMemo(() => {
     const allEntries = listEntries();
@@ -721,13 +746,12 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [], on
                 </div>
               </div>
             )}
-            </div>
           </div>
         </header>
 
         <main style={{ marginTop: '24px' }}>
           {currentPage === 'today' && (
-            <TodayPage 
+            <TodayPage
               entry={entry}
               updateEntryField={updateEntryField}
               updateGratitude={updateGratitude}
@@ -740,6 +764,8 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [], on
               isComplete={isComplete}
               analytics={analytics}
               goals={goals}
+              missingSections={missingSections}
+              theme={theme}
             />
           )}
           {currentPage === 'calendar' && (
@@ -813,7 +839,7 @@ export default function ConquerJournal({ onBack, theme = 'night', goals = [], on
   );
 }
 
-function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, addListItem, updateListItem, removeListItem, duplicateFromYesterday, progress, isComplete, analytics, goals = [] }) {
+function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, addListItem, updateListItem, removeListItem, duplicateFromYesterday, progress, isComplete, analytics, goals = [], missingSections = [], theme = 'night' }) {
   return (
     <div className="planner-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px', margin: '0 auto' }}>
       <section className="column">
@@ -1483,41 +1509,190 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
           </div>
         </article>
 
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          {isComplete && (
+        {/* Progress Banner - Shows missing sections or celebration */}
+        <div style={{ marginTop: '16px' }}>
+          {isComplete ? (
+            // Celebration Button - All sections complete!
             <button 
               className="btn primary" 
               style={{ 
-                flex: 1,
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                animation: 'none',
-                boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)'
+                width: '100%',
+                padding: '20px',
+                background: 'linear-gradient(135deg, #10b981, #059669, #10b981)',
+                backgroundSize: '200% 200%',
+                animation: 'celebrationGradient 3s ease infinite, celebrationPulse 2s ease-in-out infinite',
+                boxShadow: '0 8px 32px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '16px',
+                fontSize: '18px',
+                fontWeight: 700,
+                color: '#ffffff',
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                position: 'relative',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
               }}
-              onClick={() => {
-                // Celebration effect
-                const btn = document.querySelector('.btn.primary');
-                if (btn) {
-                  btn.style.transform = 'scale(1.05)';
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 12px 48px rgba(16, 185, 129, 0.6), 0 0 60px rgba(16, 185, 129, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3)';
+              }}
+              onClick={(e) => {
+                // Enhanced celebration effect
+                const btn = e.currentTarget;
+                btn.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                  btn.style.transform = 'scale(1)';
+                }, 300);
+                
+                // Create confetti effect
+                for (let i = 0; i < 20; i++) {
                   setTimeout(() => {
-                    btn.style.transform = 'scale(1)';
-                  }, 200);
+                    const confetti = document.createElement('div');
+                    confetti.style.position = 'absolute';
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.top = '0';
+                    confetti.style.width = '8px';
+                    confetti.style.height = '8px';
+                    confetti.style.background = ['#10b981', '#fbbf24', '#3b82f6', '#8b5cf6'][Math.floor(Math.random() * 4)];
+                    confetti.style.borderRadius = '50%';
+                    confetti.style.pointerEvents = 'none';
+                    confetti.style.zIndex = '1000';
+                    confetti.style.animation = 'confettiFall 2s ease-out forwards';
+                    btn.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 2000);
+                  }, i * 50);
                 }
               }}
             >
-              🎉 Day Complete! 🎉
+              <span style={{ fontSize: '24px', marginRight: '12px' }}>🎉</span>
+              <span>ALL SECTIONS COMPLETE!</span>
+              <span style={{ fontSize: '24px', marginLeft: '12px' }}>🎉</span>
+              <div style={{
+                position: 'absolute',
+                top: '-50%',
+                left: '-50%',
+                width: '200%',
+                height: '200%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)',
+                animation: 'celebrationShine 2s ease-in-out infinite',
+                pointerEvents: 'none'
+              }} />
             </button>
-          )}
-          {!isComplete && progress.percentage >= 50 && (
+          ) : (
+            // Progress Banner - Shows what's missing (matching image style)
             <div style={{ 
-              flex: 1,
-              padding: '12px',
-              background: 'rgba(56, 189, 248, 0.1)',
+              width: '100%',
+              padding: '14px 18px',
+              background: theme === 'day' ? '#1e3a8a' : '#1e40af',
               borderRadius: '12px',
-              textAlign: 'center',
-              fontSize: '13px',
-              color: 'var(--text-muted)'
+              border: `2px solid ${theme === 'day' ? '#3b82f6' : '#60a5fa'}`,
+              boxShadow: '0 4px 16px rgba(30, 64, 175, 0.3)',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              {progress.completed}/{progress.total} sections complete • Keep going! 💪
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '2px',
+                background: theme === 'day' ? '#3b82f6' : '#60a5fa',
+                opacity: 0.6
+              }} />
+              
+              {/* Main Progress Text */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                marginBottom: missingSections.length > 0 ? '14px' : '0'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ 
+                    fontSize: '15px', 
+                    fontWeight: 600,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span>{progress.completed}/{progress.total} sections complete</span>
+                    {progress.percentage >= 50 && (
+                      <span style={{ 
+                        fontSize: '13px',
+                        color: '#ffffff',
+                        opacity: 0.9,
+                        fontStyle: 'italic'
+                      }}>
+                        • Keep going!
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ fontSize: '18px' }}>💪</span>
+                </div>
+              </div>
+              
+              {/* Missing Sections List */}
+              {missingSections.length > 0 && (
+                <div style={{ 
+                  paddingTop: '14px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.15)'
+                }}>
+                  <div style={{ 
+                    fontSize: '11px',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    marginBottom: '10px',
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    What's Missing:
+                  </div>
+                  <div style={{ 
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px'
+                  }}>
+                    {missingSections.map((section, index) => (
+                      <div
+                        key={section.key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '7px 12px',
+                          background: 'rgba(255, 255, 255, 0.12)',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          fontSize: '12px',
+                          color: '#ffffff',
+                          fontWeight: 500,
+                          animation: `fadeIn 0.3s ease ${index * 0.1}s both`,
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <span style={{ fontSize: '14px' }}>{section.emoji}</span>
+                        <span>{section.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
