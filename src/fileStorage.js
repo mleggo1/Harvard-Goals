@@ -62,6 +62,7 @@ async function loadFromIDB() {
 
 // Store file handle reference (for desktop File System Access API)
 let currentFileHandle = null;
+const FILE_HANDLE_STORAGE_KEY = 'harvard_goals_file_handle_storage';
 
 // Save file handle to localStorage (for persistence across sessions)
 // Note: File handles can't be directly serialized, but we can use the File System Access API's
@@ -80,6 +81,10 @@ function saveFileHandle(handle, fullPath = null) {
       handle.queryPermission({ mode: 'readwrite' }).then(permission => {
         if (permission === 'granted') {
           // Permission is granted, handle should persist
+          // Try to request persistent access
+          if (handle.requestPermission) {
+            handle.requestPermission({ mode: 'readwrite' });
+          }
         }
       });
     }
@@ -89,6 +94,28 @@ function saveFileHandle(handle, fullPath = null) {
       localStorage.removeItem(FILE_PATH_KEY);
     }
   }
+}
+
+// Try to restore file handle on desktop (File System Access API)
+// Note: File handles cannot be directly restored, but we can check if we have permission
+// and prompt user to reopen the file if needed
+async function tryRestoreFileHandle() {
+  if (!supportsFileSystemAccess()) {
+    return null;
+  }
+  
+  const handleData = localStorage.getItem(FILE_HANDLE_KEY);
+  const storedPath = getStoredFilePath();
+  
+  if (handleData === 'has_handle' && storedPath) {
+    // We had a handle before, but can't restore it directly
+    // File System Access API handles don't persist across page reloads
+    // The browser may remember permissions, but we can't restore the handle object
+    // Return null - the app will save to IndexedDB and user can reopen file to get new handle
+    return null;
+  }
+  
+  return null;
 }
 
 // Get current file handle
@@ -149,7 +176,7 @@ async function loadFromFileInput(file) {
 // Save using File System Access API
 async function saveToFile(data, fileHandle = null) {
   try {
-    // Always save to IndexedDB as backup/cache
+    // Always save to IndexedDB as backup/cache first
     await saveToIDB(data);
 
     // Try to get file handle
@@ -167,6 +194,11 @@ async function saveToFile(data, fileHandle = null) {
 
     // Desktop: try to use file handle if available
     if (!handle) {
+      // Try to restore handle from previous session
+      handle = await tryRestoreFileHandle();
+    }
+    
+    if (!handle) {
       const handleData = localStorage.getItem(FILE_HANDLE_KEY);
       if (handleData !== 'has_handle' && handleData !== 'has_path') {
         // No handle/path stored
@@ -178,7 +210,7 @@ async function saveToFile(data, fileHandle = null) {
         };
       }
       // We had a handle/path before, but can't restore handle directly
-      // Just use IndexedDB but show the path
+      // Just use IndexedDB but show the path - data is saved to IndexedDB
       const storedPath = getStoredFilePath();
       return { 
         success: true, 
@@ -189,6 +221,26 @@ async function saveToFile(data, fileHandle = null) {
 
     // We have a handle - write to file
     try {
+      // Check permission first
+      if (handle.queryPermission) {
+        const permission = await handle.queryPermission({ mode: 'readwrite' });
+        if (permission !== 'granted') {
+          // Permission lost, request it
+          if (handle.requestPermission) {
+            const newPermission = await handle.requestPermission({ mode: 'readwrite' });
+            if (newPermission !== 'granted') {
+              // Permission denied, fall back to IndexedDB
+              const storedPath = getStoredFilePath();
+              return { 
+                success: true, 
+                method: 'indexeddb', 
+                path: storedPath || 'Browser Storage' 
+              };
+            }
+          }
+        }
+      }
+      
       const writable = await handle.createWritable();
       await writable.write(JSON.stringify(data, null, 2));
       await writable.close();
@@ -199,8 +251,8 @@ async function saveToFile(data, fileHandle = null) {
       return { success: true, method: 'file', path, handle };
     } catch (error) {
       // Handle permission errors
-      if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
-        // Permission lost, fall back to IndexedDB but keep the path
+      if (error.name === 'NotAllowedError' || error.name === 'SecurityError' || error.name === 'NotFoundError') {
+        // Permission lost or file not found, fall back to IndexedDB but keep the path
         const storedPath = getStoredFilePath();
         return { 
           success: true, 
@@ -212,8 +264,7 @@ async function saveToFile(data, fileHandle = null) {
     }
   } catch (error) {
     console.error('Error saving file:', error);
-    // Fallback to IndexedDB
-    await saveToIDB(data);
+    // Fallback to IndexedDB - data is already saved there
     const storedPath = getStoredFilePath();
     return { 
       success: true, 
@@ -382,21 +433,26 @@ async function autoSave(data, onSaveComplete = null) {
 async function initialize() {
   try {
     // Always try IndexedDB first (it's the most reliable for auto-loading)
+    // IndexedDB contains the latest saved data, so it's the source of truth
     const idbData = await loadFromIDB();
     const storedPath = getStoredFilePath();
     
     if (idbData) {
+      // We have data in IndexedDB - this is the latest version
+      // Return it along with the stored file path for display
       return { data: idbData, path: storedPath || 'Browser Storage', method: 'indexeddb' };
     }
 
     // If no IndexedDB data, check if we have a file path stored
-    if (storedPath) {
-      // We have a path but no data - on mobile, we should try to prompt to open that file
-      // On desktop with File System Access API, we can try to restore the handle
+    if (storedPath && storedPath !== 'Browser Storage (Not set)') {
+      // We have a path but no data in IndexedDB
+      // On desktop with File System Access API, we could try to restore the handle
+      // But for now, return the path so the app knows there was a file
       if (supportsFileSystemAccess()) {
         return { data: null, path: storedPath, method: 'file', needsOpen: true };
       } else {
-        // Mobile: we have a stored path, return it so app can prompt to open
+        // Mobile: we have a stored path but no data
+        // The file was imported before, but data wasn't saved to IndexedDB
         return { data: null, path: storedPath, method: 'mobile', needsOpen: true };
       }
     }
@@ -457,6 +513,7 @@ export {
   saveToIDB,
   saveFileHandle,
   setFilePath,
-  getCurrentFileHandle
+  getCurrentFileHandle,
+  tryRestoreFileHandle
 };
 

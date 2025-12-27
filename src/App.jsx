@@ -1551,7 +1551,7 @@ function applyTimeframe(value, options = {}) {
                     </button>
                   </>
                 ) : (
-                  // Mobile: Group buttons in dropdown, only show Big 5 and Import if first session
+                  // Mobile: Always show Big 5 and Import buttons, group others in dropdown
                   <>
                     <input
                       type="file"
@@ -1560,20 +1560,17 @@ function applyTimeframe(value, options = {}) {
                       id="file-input"
                       style={{ display: "none" }}
                     />
-                    {isFirstSession ? (
-                      <label htmlFor="file-input" className="btn btn-ghost" title="Import from file">
-                        📥 Import
-                      </label>
-                    ) : (
-                      <button
-                        className="btn btn-ghost big5-shortcut-btn"
-                        onClick={scrollToBig5}
-                        title={big5.length > 0 ? `Jump to Big 5 Goals (${big5.length} goals)` : "Jump to Big 5 Goals section"}
-                        disabled={big5.length === 0}
-                      >
-                        🔥 Big 5 {big5.length > 0 && `(${big5.length})`}
-                      </button>
-                    )}
+                    <label htmlFor="file-input" className="btn btn-ghost" title="Import from file">
+                      📥 Import
+                    </label>
+                    <button
+                      className="btn btn-ghost big5-shortcut-btn"
+                      onClick={scrollToBig5}
+                      title={big5.length > 0 ? `Jump to Big 5 Goals (${big5.length} goals)` : "Jump to Big 5 Goals section"}
+                      disabled={big5.length === 0}
+                    >
+                      🔥 Big 5 {big5.length > 0 && `(${big5.length})`}
+                    </button>
                     <div style={{ position: 'relative', display: 'inline-block' }} data-mobile-menu>
                       <button 
                         className="btn btn-ghost" 
@@ -1586,20 +1583,28 @@ function applyTimeframe(value, options = {}) {
                       {showMobileMenu && (
                         <div style={{
                           position: 'absolute',
-                          top: '100%',
+                          top: 'calc(100% + 4px)',
                           right: 0,
-                          marginTop: '4px',
                           background: 'var(--bg-primary)',
                           border: '1px solid var(--border)',
                           borderRadius: '8px',
                           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                          zIndex: 1000,
-                          minWidth: '180px',
-                          padding: '4px'
-                        }}>
+                          zIndex: 10000,
+                          minWidth: '200px',
+                          maxWidth: 'min(300px, calc(100vw - 32px))',
+                          maxHeight: 'min(400px, calc(100vh - 150px))',
+                          overflowY: 'auto',
+                          overflowX: 'hidden',
+                          padding: '8px',
+                          WebkitOverflowScrolling: 'touch',
+                          overscrollBehavior: 'contain'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        >
                           <button 
                             className="btn btn-ghost" 
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               handleOpenFile();
                               setShowMobileMenu(false);
                             }}
@@ -1607,33 +1612,18 @@ function applyTimeframe(value, options = {}) {
                             style={{ 
                               width: '100%', 
                               justifyContent: 'flex-start',
-                              padding: '8px 12px',
-                              borderRadius: '4px'
+                              padding: '10px 14px',
+                              borderRadius: '6px',
+                              marginBottom: '4px',
+                              textAlign: 'left'
                             }}
                           >
                             📂 Open
                           </button>
-                          {!isFirstSession && (
-                            <label 
-                              htmlFor="file-input" 
-                              className="btn btn-ghost" 
-                              title="Import from file"
-                              onClick={() => setShowMobileMenu(false)}
-                              style={{ 
-                                width: '100%', 
-                                justifyContent: 'flex-start',
-                                padding: '8px 12px',
-                                borderRadius: '4px',
-                                display: 'block',
-                                textAlign: 'left'
-                              }}
-                            >
-                              📥 Import
-                            </label>
-                          )}
                           <button 
                             className="btn btn-ghost" 
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               handleChangeSaveLocation();
                               setShowMobileMenu(false);
                             }}
@@ -1641,8 +1631,10 @@ function applyTimeframe(value, options = {}) {
                             style={{ 
                               width: '100%', 
                               justifyContent: 'flex-start',
-                              padding: '8px 12px',
-                              borderRadius: '4px'
+                              padding: '10px 14px',
+                              borderRadius: '6px',
+                              marginBottom: '4px',
+                              textAlign: 'left'
                             }}
                           >
                             📁 Change Location
