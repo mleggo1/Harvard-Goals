@@ -541,17 +541,27 @@ export default function App() {
   // Auto-save when planner changes - include ConquerJournal data
   useEffect(() => {
     if (!isInitialized) return;
+    if (!autoSave || typeof autoSave !== 'function') return;
     
-    setSaveStatus('saving');
-    
-    // Get ConquerJournal data and combine with planner
-    const conquerData = getAllConquerJournalData();
-    const allData = {
-      ...planner,
-      conquerJournal: conquerData
-    };
-    
-    autoSave(allData, (result) => {
+    try {
+      setSaveStatus('saving');
+      
+      // Get ConquerJournal data and combine with planner
+      let conquerData = {};
+      if (getAllConquerJournalData && typeof getAllConquerJournalData === 'function') {
+        try {
+          conquerData = getAllConquerJournalData();
+        } catch (cjError) {
+          console.error('Error getting ConquerJournal data:', cjError);
+        }
+      }
+      
+      const allData = {
+        ...planner,
+        conquerJournal: conquerData
+      };
+      
+      autoSave(allData, (result) => {
       if (result.success) {
         if (result.skipped) {
           // No change, don't update status
@@ -1685,15 +1695,17 @@ function applyTimeframe(value, options = {}) {
   // Handle ConquerJournal save callback
   const handleConquerJournalSave = async (conquerData) => {
     if (!isInitialized) return;
+    if (!autoSave || typeof autoSave !== 'function') return;
     
-    // Combine planner and ConquerJournal data
-    const allData = {
-      ...planner,
-      conquerJournal: conquerData
-    };
-    
-    // Auto-save the combined data
-    autoSave(allData, (result) => {
+    try {
+      // Combine planner and ConquerJournal data
+      const allData = {
+        ...planner,
+        conquerJournal: conquerData || {}
+      };
+      
+      // Auto-save the combined data
+      autoSave(allData, (result) => {
       if (result.success) {
         if (!result.skipped) {
           setSaveStatus('saved');
