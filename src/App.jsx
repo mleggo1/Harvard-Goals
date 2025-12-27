@@ -1696,8 +1696,9 @@ function applyTimeframe(value, options = {}) {
     );
   }
 
+  // Always render the app - never return null or blank screen
   return (
-    <div className={`app-root ${theme}-skin`}>
+    <div className={`app-root ${theme}-skin`} style={{ minHeight: '100vh' }}>
       {/* File location prompt (first time setup) - Beautiful, clear UI */}
       {showFileLocationPrompt && (
         <div style={{
