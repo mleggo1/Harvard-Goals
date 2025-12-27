@@ -362,7 +362,22 @@ async function loadFromFile() {
     let handle = getCurrentFileHandle();
     
     if (!handle) {
-      // Handle was lost, need to reopen file
+      // Handle was lost - try to auto-open silently using IndexedDB as fallback
+      // This provides seamless experience - user doesn't need to reopen manually
+      const idbData = await loadFromIDB();
+      if (idbData) {
+        // We have data in IndexedDB, use that for seamless experience
+        const storedPath = getStoredFilePath();
+        return {
+          success: true,
+          data: idbData,
+          path: storedPath || getCurrentSavePath(),
+          method: 'indexeddb',
+          needsReopen: true // Flag that file handle needs to be restored on next save
+        };
+      }
+      
+      // No IndexedDB data - need to prompt user to reopen file
       const storedPath = getStoredFilePath();
       
       // Try to prompt user to reopen the same file

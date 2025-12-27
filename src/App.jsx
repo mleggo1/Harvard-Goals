@@ -419,6 +419,7 @@ export default function App() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSettings, setShowMobileSettings] = useState(false);
+  const [showDesktopSettings, setShowDesktopSettings] = useState(false);
 
   // Safe destructuring with defaults
   const {
@@ -2016,40 +2017,121 @@ function applyTimeframe(value, options = {}) {
               </div>
               <div className="hero-top-actions">
                 {supportsFileSystemAccess() ? (
-                  // Desktop: Show all buttons
+                  // Desktop: Settings cog with grouped buttons
                   <>
-                    <button 
-                      className="btn btn-ghost" 
-                      onClick={handleOpenFile}
-                      title="Open a Goals Blueprint file"
-                    >
-                      📂 Open
-                    </button>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={loadPlanJson}
-                      id="file-input"
-                      style={{ display: "none" }}
-                    />
-                    <label htmlFor="file-input" className="btn btn-ghost" title="Import from file (fallback)">
-                      📥 Import
-                    </label>
-                    <button 
-                      className="btn btn-ghost" 
-                      onClick={handleChangeSaveLocation}
-                      title="Change where your file is saved"
-                    >
-                      📁 Change Location
-                    </button>
-                    <div style={{ position: 'relative', display: 'inline-block' }} data-export-menu>
-                      <button 
-                        className="btn btn-ghost" 
-                        onClick={() => setShowExportMenu(!showExportMenu)}
-                        title="Export options"
+                    <div style={{ position: 'relative', display: 'inline-block' }} data-desktop-settings>
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => setShowDesktopSettings(!showDesktopSettings)}
+                        title="Settings"
+                        style={{
+                          fontSize: '18px',
+                          padding: '8px 12px'
+                        }}
                       >
-                        📤 Export ▼
+                        ⚙️
                       </button>
+                      {showDesktopSettings && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 8px)',
+                          right: 0,
+                          background: 'var(--bg-primary)',
+                          border: '2px solid var(--border)',
+                          borderRadius: '12px',
+                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                          zIndex: 10002,
+                          minWidth: '200px',
+                          padding: '12px',
+                          marginTop: '4px'
+                        }}>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenFile();
+                            setShowDesktopSettings(false);
+                          }}
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            marginBottom: '8px',
+                            textAlign: 'left'
+                          }}
+                        >
+                          📂 Open
+                        </button>
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={(e) => {
+                            loadPlanJson(e);
+                            setShowDesktopSettings(false);
+                          }}
+                          id="file-input-desktop"
+                          style={{ display: "none" }}
+                        />
+                        <label 
+                          htmlFor="file-input-desktop" 
+                          className="btn btn-ghost" 
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            marginBottom: '8px',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            display: 'block'
+                          }}
+                          onClick={() => setShowDesktopSettings(false)}
+                        >
+                          📥 Import
+                        </label>
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleChangeSaveLocation();
+                            setShowDesktopSettings(false);
+                          }}
+                          style={{ 
+                            width: '100%', 
+                            justifyContent: 'flex-start',
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            marginBottom: '8px',
+                            textAlign: 'left'
+                          }}
+                        >
+                          📁 Change Location
+                        </button>
+                        <div style={{
+                          height: '1px',
+                          background: 'var(--border)',
+                          margin: '8px 0',
+                          opacity: 0.5
+                        }} />
+                        <div style={{ position: 'relative', display: 'block' }} data-export-menu>
+                          <button 
+                            className="btn btn-ghost" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowExportMenu(!showExportMenu);
+                            }}
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'flex-start',
+                              padding: '12px 16px',
+                              borderRadius: '8px',
+                              marginBottom: '8px',
+                              textAlign: 'left'
+                            }}
+                          >
+                            📤 Export {showExportMenu ? '▲' : '▼'}
+                          </button>
                       {showExportMenu && (
                         <div style={{
                           position: 'absolute',
