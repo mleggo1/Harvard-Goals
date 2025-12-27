@@ -1734,6 +1734,11 @@ function applyTimeframe(value, options = {}) {
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
     });
+    } catch (error) {
+      console.error('Error in handleConquerJournalSave:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
   };
 
   // Show Conquer Journal if that view is selected
