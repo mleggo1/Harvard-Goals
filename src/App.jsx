@@ -3171,7 +3171,7 @@ function applyTimeframe(value, options = {}) {
           </section>
 
           <section className="column column-side">
-            <article className="card highlight">
+            <article className="card highlight" data-section="momentum-dashboard">
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">📊</span>
@@ -3230,7 +3230,7 @@ function applyTimeframe(value, options = {}) {
               )}
             </article>
 
-            <article id="big5-goals-section" className="card">
+            <article id="big5-goals-section" className="card" data-section="big5">
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🔥</span>
@@ -3265,7 +3265,7 @@ function applyTimeframe(value, options = {}) {
               )}
             </article>
 
-            <article className="card card-due-soon">
+            <article className="card card-due-soon" data-section="goals-due-soon">
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">⏰</span>
@@ -3479,7 +3479,7 @@ function applyTimeframe(value, options = {}) {
               </article>
             )}
 
-            <article className="card">
+            <article className="card" data-section="momentum-rituals">
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🌀</span>
@@ -3509,7 +3509,7 @@ function applyTimeframe(value, options = {}) {
               <small>{ritualCompletion}% rituals complete today</small>
             </article>
 
-            <article className="card">
+            <article className="card" data-section="weekly-focus">
               <header className="card-header">
                 <div className="card-title">
                   <span className="icon">🧩</span>

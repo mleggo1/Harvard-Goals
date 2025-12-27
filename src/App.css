@@ -3576,6 +3576,35 @@ body::before {
   gap: 4px !important;
 }
 
+/* Mobile: Reorder sections in column-side - Big 5, Goals Due Soon, Momentum Rituals, Weekly Focus first */
+@media (max-width: 768px) {
+  .column-side {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Reorder sections on mobile: Big 5, Goals Due Soon, Momentum Rituals, Weekly Focus first, then Momentum Dashboard */
+  .column-side [data-section="big5"] {
+    order: 1;
+  }
+  
+  .column-side [data-section="goals-due-soon"] {
+    order: 2;
+  }
+  
+  .column-side [data-section="momentum-rituals"] {
+    order: 3;
+  }
+  
+  .column-side [data-section="weekly-focus"] {
+    order: 4;
+  }
+  
+  .column-side [data-section="momentum-dashboard"] {
+    order: 5;
+  }
+}
+
 @media (max-width: 768px) {
   .calendar-grid {
     gap: 3px !important;
