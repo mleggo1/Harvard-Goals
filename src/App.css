@@ -3825,6 +3825,65 @@ body::before {
     overflow: visible !important;
   }
   
+  /* Fix collapsed/expanded containers to auto-resize on mobile */
+  .card-vision,
+  .card-add-goal {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .card-vision.collapsed,
+  .card-add-goal.collapsed {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .card-vision .card-header,
+  .card-add-goal .card-header {
+    min-height: auto !important;
+    height: auto !important;
+  }
+  
+  .card-vision > div,
+  .card-add-goal .card-add-goal-content {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .card-vision.collapsed > div {
+    display: none;
+  }
+  
+  .card-add-goal.collapsed .card-add-goal-content {
+    display: none !important;
+  }
+  
+  /* Ensure fields inside auto-resize */
+  .card-vision .field,
+  .card-add-goal .field {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .card-vision textarea,
+  .card-add-goal textarea,
+  .card-add-goal input,
+  .card-add-goal select {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
   /* Hide Celebration Plan in focus-section on mobile */
   .focus-card[data-section="celebration-plan"] {
     display: none;
@@ -3915,6 +3974,21 @@ body::before {
     max-height: none !important;
     overflow: visible !important;
     padding: 12px !important;
+  }
+  
+  /* Ensure left column containers auto-resize */
+  .column[data-section="left-column"] .card {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .column[data-section="left-column"] article {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 }
 
