@@ -3617,7 +3617,31 @@ body::before {
     order: 5;
   }
   
-  /* Fix Big 5 Goals This Year - prevent text cutoff */
+  /* Fix Big 5 Goals This Year - ensure all 5 goals are visible, auto-resize container */
+  .column-side [data-section="big5"] {
+    padding: 12px !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .column-side [data-section="big5"] .card {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .column-side [data-section="big5"] .big3-list {
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
   .column-side [data-section="big5"] .card-title {
     font-size: 16px !important;
     line-height: 1.3 !important;
@@ -3643,40 +3667,58 @@ body::before {
   }
   
   .column-side [data-section="big5"] .big3-card {
-    padding: 10px 12px !important;
-    gap: 10px !important;
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    min-height: auto !important;
+    height: auto !important;
+    flex-shrink: 0;
+  }
+  
+  .column-side [data-section="big5"] .big3-card > div:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+    overflow: visible !important;
   }
   
   .column-side [data-section="big5"] .big3-card h4 {
-    font-size: 14px !important;
+    font-size: 13px !important;
     line-height: 1.4 !important;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
     margin: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
   }
   
   .column-side [data-section="big5"] .big3-card p {
-    font-size: 11px !important;
+    font-size: 10px !important;
     line-height: 1.3 !important;
     margin: 2px 0 0 !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .column-side [data-section="big5"] .badge {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 12px !important;
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 11px !important;
     flex-shrink: 0;
   }
   
   .column-side [data-section="big5"] .big3-progress {
-    font-size: 12px !important;
+    font-size: 11px !important;
     flex-shrink: 0;
+    white-space: nowrap;
   }
   
-  /* Fix Goals Due Soon - reduce container height */
+  /* Fix Goals Due Soon - auto-resize container */
   .column-side [data-section="goals-due-soon"] {
     padding: 12px !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
   
   .column-side [data-section="goals-due-soon"] .card-header {
@@ -3731,9 +3773,13 @@ body::before {
     margin: 2px 0 0 !important;
   }
   
-  /* Fix Momentum Rituals - resize container */
+  /* Fix Momentum Rituals - auto-resize container */
   .column-side [data-section="momentum-rituals"] {
     padding: 12px !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
   
   .column-side [data-section="momentum-rituals"] .card-header {
@@ -3770,9 +3816,60 @@ body::before {
     font-size: 11px !important;
   }
   
-  /* Fix Weekly Focus Prompt - resize container */
+  /* Fix Weekly Focus Prompt - auto-resize container */
   .column-side [data-section="weekly-focus"] {
     padding: 12px !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  /* Hide Celebration Plan in focus-section on mobile */
+  .focus-card[data-section="celebration-plan"] {
+    display: none;
+  }
+  
+  /* Show Celebration Plan in column-side on mobile, after Momentum Dashboard */
+  .column-side [data-section="celebration-plan-mobile"] {
+    order: 6;
+    display: block !important;
+    padding: 12px !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+  }
+  
+  /* Hide Celebration Plan mobile version on desktop */
+  @media (min-width: 769px) {
+    .column-side [data-section="celebration-plan-mobile"] {
+      display: none !important;
+    }
+    
+    .focus-card[data-section="celebration-plan"] {
+      display: block;
+    }
+  }
+  
+  .column-side [data-section="celebration-plan-mobile"] .card-title {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .column-side [data-section="celebration-plan-mobile"] p {
+    font-size: 13px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .column-side [data-section="celebration-plan-mobile"] textarea {
+    min-height: 60px !important;
+    font-size: 14px !important;
+    padding: 10px !important;
   }
   
   .column-side [data-section="weekly-focus"] .card-header {
@@ -3794,6 +3891,30 @@ body::before {
     line-height: 1.5 !important;
     word-wrap: break-word;
     overflow-wrap: break-word;
+  }
+  
+  /* Ensure all column-side containers auto-resize */
+  .column-side .card {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  .column-side article {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  /* Ensure Momentum Dashboard auto-resizes */
+  .column-side [data-section="momentum-dashboard"] {
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 12px !important;
   }
 }
 

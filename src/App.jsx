@@ -2648,7 +2648,7 @@ function applyTimeframe(value, options = {}) {
                 placeholder="Example: I do the hard thing first, before distractions set in. Progress over perfection, action over planning."
               />
             </article>
-            <article className="focus-card">
+            <article className="focus-card" data-section="celebration-plan">
               <div className="card-title">
                 <span className="icon">🎉</span>
                 <span>CELEBRATION PLAN</span>
@@ -3521,6 +3521,42 @@ function applyTimeframe(value, options = {}) {
                 <li>Am I protecting enough time for my top 5 goals?</li>
                 <li>What do I need to say no to so my goals can win?</li>
               </ul>
+            </article>
+            
+            {/* Celebration Plan - shown on mobile after Momentum Dashboard */}
+            <article className="focus-card card" data-section="celebration-plan-mobile">
+              <div className="card-title">
+                <span className="icon">🎉</span>
+                <span>CELEBRATION PLAN</span>
+              </div>
+              <p>Anchor in a reward so your brain knows progress is worth celebrating.</p>
+              <textarea
+                value={celebrationPlan}
+                onChange={(e) => {
+                  updatePlannerField("celebrationPlan", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                placeholder="Example: Weekend getaway when I hit my next milestone. Or a special dinner with loved ones when I complete my quarterly goal."
+                rows={1}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border)',
+                  background: 'rgba(148, 163, 184, 0.1)',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'inherit',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  resize: 'vertical',
+                  minHeight: '60px'
+                }}
+              />
             </article>
           </section>
         </main>
