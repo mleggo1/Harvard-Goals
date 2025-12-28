@@ -16,7 +16,8 @@ import {
   supportsFileSystemAccess,
   saveToIDB,
   saveToFile,
-  saveCopyToShareSheet
+  saveCopyToShareSheet,
+  saveFileLocation
 } from "./fileStorage.js";
 import { getAllConquerJournalData, loadAllConquerJournalData } from "./ConquerJournal.jsx";
 
@@ -1281,6 +1282,126 @@ function applyTimeframe(value, options = {}) {
     }
   }
 
+  // Desktop Import - opens file picker and loads file
+  async function handleDesktopImport() {
+    try {
+      if (!window.showOpenFilePicker) {
+        // Fallback to file input if File System Access API not available
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+        
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            await loadPlanJson(e);
+          }
+          if (document.body.contains(input)) {
+            document.body.removeChild(input);
+          }
+        };
+        
+        input.oncancel = () => {
+          if (document.body.contains(input)) {
+            document.body.removeChild(input);
+          }
+        };
+        
+        input.click();
+        return;
+      }
+      
+      // Use File System Access API to pick a file
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{
+          description: 'Goals Blueprint',
+          accept: { 'application/json': ['.json'] }
+        }]
+      });
+      
+      // Get the file and read it
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Load planner data
+      setPlanner({
+        ...DEFAULT_STATE,
+        ...data,
+        ritualChecks: {
+          ...DEFAULT_STATE.ritualChecks,
+          ...(data.ritualChecks || {})
+        },
+        goals: Array.isArray(data.goals) ? data.goals.map(hydrateGoal) : []
+      });
+      
+      // Load ConquerJournal data if present
+      if (data.conquerJournal && typeof loadAllConquerJournalData === 'function') {
+        try {
+          loadAllConquerJournalData(data.conquerJournal);
+        } catch (cjError) {
+          console.error('Error loading ConquerJournal data:', cjError);
+        }
+      }
+      
+      // Ask user if they want to set this as their save location
+      const setAsSaveLocation = confirm(
+        `Imported file: ${file.name}\n\nDo you want to set this as your save location? (If not, your current save location will remain unchanged.)`
+      );
+      
+      if (setAsSaveLocation) {
+        // Get current data and save to the imported file location
+        const conquerData = getAllConquerJournalData();
+        const allData = {
+          ...planner,
+          ...data,
+          conquerJournal: conquerData || {}
+        };
+        
+        try {
+          // Save to the file
+          const writable = await fileHandle.createWritable();
+          await writable.write(JSON.stringify(allData, null, 2));
+          await writable.close();
+          
+          // Set up the file location using saveFileLocation
+          const fileName = fileHandle.name;
+          saveFileLocation(fileHandle, fileName, fileName);
+          
+          // Also save to IndexedDB as backup
+          await saveToIDB(allData);
+          
+          setSavePath(fileName);
+          setFileError(null);
+        } catch (saveError) {
+          console.error('Error saving to new file location:', saveError);
+          setFileError('Imported successfully, but could not save to new location: ' + saveError.message);
+        }
+      } else {
+        // Just import, don't change save location
+        // Save to IndexedDB as backup
+        const conquerData = getAllConquerJournalData();
+        const allData = {
+          ...planner,
+          ...data,
+          conquerJournal: conquerData || {}
+        };
+        await saveToIDB(allData);
+        
+        setFileError(null);
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        // User cancelled - no error
+        return;
+      }
+      console.error('Error importing file:', error);
+      setFileError('Error importing file: ' + error.message);
+    }
+  }
+
   // Mobile Import - loads file from OneDrive/Files and saves locally
   async function handleMobileImport() {
     try {
@@ -2176,19 +2297,13 @@ function applyTimeframe(value, options = {}) {
                         >
                           💾 Save As
                         </button>
-                        <input
-                          type="file"
-                          accept=".json"
-                          onChange={(e) => {
-                            loadPlanJson(e);
+                        <button 
+                          className="btn btn-ghost" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDesktopImport();
                             setShowDesktopSettings(false);
                           }}
-                          id="file-input-desktop"
-                          style={{ display: "none" }}
-                        />
-                        <label 
-                          htmlFor="file-input-desktop" 
-                          className="btn btn-ghost" 
                           style={{ 
                             width: '100%', 
                             justifyContent: 'flex-start',
@@ -2196,15 +2311,12 @@ function applyTimeframe(value, options = {}) {
                             borderRadius: '8px',
                             marginBottom: '4px',
                             textAlign: 'left',
-                            cursor: 'pointer',
-                            display: 'block',
                             fontSize: '14px',
                             fontWeight: 500,
                             color: 'var(--text-primary)',
                             background: 'transparent',
                             transition: 'all 0.2s ease'
                           }}
-                          onClick={() => setShowDesktopSettings(false)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
                           }}
@@ -2213,7 +2325,7 @@ function applyTimeframe(value, options = {}) {
                           }}
                         >
                           📥 Import
-                        </label>
+                        </button>
                         <div style={{
                           height: '1px',
                           background: 'var(--border)',

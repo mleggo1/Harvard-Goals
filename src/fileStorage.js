@@ -927,6 +927,7 @@ export {
   getCurrentFileHandle,
   clearFileLocation,
   setFilePath,
+  saveFileLocation,
   // New mobile sync functions
   saveCopyToShareSheet,
   getSyncMode,
