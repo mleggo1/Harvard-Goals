@@ -67,7 +67,7 @@ export default function PasswordGate({ children }) {
                 setPassword(e.target.value);
                 setError("");
               }}
-              placeholder="Enter password (MJL + month number)"
+              placeholder="Enter password"
               autoFocus
               className={error ? "error" : ""}
               style={{
@@ -135,15 +135,6 @@ export default function PasswordGate({ children }) {
           >
             Unlock My Goals 🚀
           </button>
-          <p style={{
-            marginTop: '16px',
-            fontSize: '12px',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            opacity: 0.7
-          }}>
-            Password format: MJL + month number (e.g., MJL12 for December)
-          </p>
         </form>
       </div>
     </div>
