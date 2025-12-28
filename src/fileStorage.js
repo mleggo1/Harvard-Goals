@@ -663,59 +663,57 @@ async function loadFromFileInput(file) {
     const text = await file.text();
     const data = JSON.parse(text);
     
-    // Store file name and mark that we have a location
-    const fileName = file.name || 'goals-blueprint.json';
-    localStorage.setItem(FILE_NAME_KEY, fileName);
-    localStorage.setItem(FILE_PATH_KEY, fileName);
-    localStorage.setItem(FILE_FULL_PATH_KEY, fileName);
-    localStorage.setItem(FILE_HANDLE_KEY, 'has_path');
+    // Check if mobile
+    const isMobile = !supportsFileSystemAccess();
     
-    // IMPORTANT: Set that we have a file location - this prevents popup from showing again
-    setHasFileLocation(true);
-    
-    // Store imported file info
-    setLastImportedFileInfo(fileName);
-    
-    // Detect sync mode: Check if we can maintain persistent file handle
-    const canAutoSync = await canMaintainPersistentFileHandle();
-    if (canAutoSync) {
-      // Try to get a file handle if possible (desktop)
-      setSyncMode('AUTO_SYNC_SUPPORTED');
+    if (isMobile) {
+      // MOBILE: Just save to IndexedDB immediately (this is our source of truth)
+      // No need to track file location or sync mode - OneDrive is manual backup only
+      await saveToIDB(data);
+      setLastLocalSaveAt();
+      return data;
     } else {
-      // Mobile: Manual sync required
-      setSyncMode('MANUAL_SYNC_REQUIRED');
+      // DESKTOP: Store file info and handle sync mode
+      const fileName = file.name || 'goals-blueprint.json';
+      localStorage.setItem(FILE_NAME_KEY, fileName);
+      localStorage.setItem(FILE_PATH_KEY, fileName);
+      localStorage.setItem(FILE_FULL_PATH_KEY, fileName);
+      localStorage.setItem(FILE_HANDLE_KEY, 'has_path');
+      
+      // IMPORTANT: Set that we have a file location - this prevents popup from showing again
+      setHasFileLocation(true);
+      
+      // Store imported file info
+      setLastImportedFileInfo(fileName);
+      
+      // Detect sync mode: Check if we can maintain persistent file handle
+      const canAutoSync = await canMaintainPersistentFileHandle();
+      if (canAutoSync) {
+        setSyncMode('AUTO_SYNC_SUPPORTED');
+      } else {
+        setSyncMode('MANUAL_SYNC_REQUIRED');
+      }
+      
+      // Save to IndexedDB as backup
+      await saveToIDB(data);
+      setLastLocalSaveAt();
+      
+      return data;
     }
-    
-    // Save to IndexedDB immediately (this is our source of truth on mobile)
-    await saveToIDB(data);
-    setLastLocalSaveAt();
-    
-    return data;
   } catch (error) {
     console.error('Error loading from file input:', error);
     throw error;
   }
 }
 
-// Save Back to OneDrive (mobile) - uses iOS share sheet
-async function saveBackToOneDrive(data, useOriginalFileName = true) {
+// Save a Copy (mobile) - uses iOS share sheet for manual backup
+async function saveCopyToShareSheet(data) {
   try {
-    // Get the filename to use
-    let fileName;
-    if (useOriginalFileName) {
-      fileName = getLastImportedFileName() || getStoredFileName() || 'goals-blueprint.json';
-    } else {
-      // Create timestamped backup filename
-      const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
-      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
-      fileName = `ConquerJournal_Backup_${dateStr}_${timeStr}.json`;
-    }
-    
-    // Ensure .json extension
-    if (!fileName.endsWith('.json')) {
-      fileName = fileName.replace(/\.(json)?$/, '') + '.json';
-    }
+    // Create timestamped backup filename
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
+    const fileName = `Goals_Blueprint_${dateStr}_${timeStr}.json`;
     
     // Create a Blob with the JSON data
     const jsonString = JSON.stringify(data, null, 2);
@@ -730,11 +728,8 @@ async function saveBackToOneDrive(data, useOriginalFileName = true) {
         await navigator.share({
           files: [file],
           title: 'Save Goals Blueprint',
-          text: 'Save your goals blueprint to OneDrive'
+          text: 'Save your goals blueprint to OneDrive or Files'
         });
-        
-        // Update last manual export timestamp
-        setLastManualExportAt();
         
         return { success: true, method: 'share', fileName };
       } catch (shareError) {
@@ -757,12 +752,9 @@ async function saveBackToOneDrive(data, useOriginalFileName = true) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    // Update last manual export timestamp
-    setLastManualExportAt();
-    
     return { success: true, method: 'download', fileName };
   } catch (error) {
-    console.error('Error saving back to OneDrive:', error);
+    console.error('Error saving copy:', error);
     return { success: false, error: error.message };
   }
 }
@@ -807,8 +799,31 @@ async function autoSave(data, onSaveComplete = null) {
 // Initialize: Check if we have a file location and try to load
 async function initialize() {
   try {
-    // Check if we have a file location set
-    // Also check if we have any stored path data (for backward compatibility)
+    // Check if mobile
+    const isMobile = !supportsFileSystemAccess();
+    
+    // MOBILE: Always load from IndexedDB first, never block
+    if (isMobile) {
+      const idbData = await loadFromIDB();
+      if (idbData) {
+        // We have local data - restore the session
+        return {
+          data: idbData,
+          path: 'Local Storage',
+          method: 'indexeddb'
+        };
+      } else {
+        // No local data - start fresh, app will auto-save as user works
+        return {
+          data: null,
+          path: 'Local Storage',
+          method: 'indexeddb',
+          isNewSession: true
+        };
+      }
+    }
+    
+    // DESKTOP: Check if we have a file location set
     const hasLocation = hasFileLocation();
     const storedPath = getStoredFilePath();
     
@@ -828,32 +843,6 @@ async function initialize() {
         path: null,
         data: null
       };
-    }
-
-    // We have a file location (or stored path) - try to load from it
-    // On mobile, we load from IndexedDB (which has the latest data)
-    // On desktop, we try to load from the file
-    
-    if (!supportsFileSystemAccess()) {
-      // Mobile: Load from IndexedDB (this is where we save on mobile)
-      const idbData = await loadFromIDB();
-      if (idbData) {
-        return {
-          data: idbData,
-          path: storedPath || getCurrentSavePath() || 'Mobile Storage',
-          method: 'indexeddb'
-        };
-      } else {
-        // No data in IndexedDB, but we have a location set
-        // This means the file was set but data hasn't been saved yet
-        // Return the path so user knows where it will be saved
-        return {
-          data: null,
-          path: storedPath || getCurrentSavePath(),
-          method: 'mobile',
-          needsData: true // Data will be saved on first change
-        };
-      }
     }
 
     // Desktop: Try to load from file
@@ -939,7 +928,7 @@ export {
   clearFileLocation,
   setFilePath,
   // New mobile sync functions
-  saveBackToOneDrive,
+  saveCopyToShareSheet,
   getSyncMode,
   setSyncMode,
   getLastImportedFileName,

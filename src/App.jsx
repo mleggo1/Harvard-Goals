@@ -16,12 +16,7 @@ import {
   supportsFileSystemAccess,
   saveToIDB,
   saveToFile,
-  saveBackToOneDrive,
-  getSyncMode,
-  getLastImportedFileName,
-  hasUnsavedChanges,
-  getLastLocalSaveAt,
-  getLastManualExportAt
+  saveCopyToShareSheet
 } from "./fileStorage.js";
 import { getAllConquerJournalData, loadAllConquerJournalData } from "./ConquerJournal.jsx";
 
@@ -467,10 +462,17 @@ export default function App() {
           return;
         }
         
-        // Mobile: Skip file location prompt, just continue
+        // Mobile: Always continue - never block on file location
+        // If no data exists, start fresh (will auto-save as user works)
         if (initResult && initResult.needsLocation && isMobile) {
           setIsInitialized(true);
+          setSavePath('Local Storage');
           return;
+        }
+        
+        // Mobile: If we have data, it's already loaded from IndexedDB
+        if (isMobile && initResult && initResult.data) {
+          setSavePath('Local Storage');
         }
         
         // Handle errors
@@ -1279,8 +1281,8 @@ function applyTimeframe(value, options = {}) {
     }
   }
 
-  // Simple mobile Open function - loads file from file picker
-  async function handleMobileOpen() {
+  // Mobile Import - loads file from OneDrive/Files and saves locally
+  async function handleMobileImport() {
     try {
       const input = document.createElement('input');
       input.type = 'file';
@@ -1292,7 +1294,7 @@ function applyTimeframe(value, options = {}) {
         const file = e.target.files[0];
         if (file) {
           try {
-            // Use loadFromFileInput which handles sync mode detection
+            // Load file and save to IndexedDB immediately
             const data = await loadFromFileInput(file);
             
             // Load planner data
@@ -1310,18 +1312,8 @@ function applyTimeframe(value, options = {}) {
               }
             }
             
-            // Update save path display
-            const fileName = getLastImportedFileName() || file.name || 'goals-blueprint.json';
-            setSavePath(fileName);
-            
+            setSavePath('Local Storage');
             setFileError(null);
-            
-            // Show sync mode message if manual sync required
-            const syncMode = getSyncMode();
-            if (syncMode === 'MANUAL_SYNC_REQUIRED') {
-              // Optionally show a toast/notification (we'll add this to Settings UI instead)
-              console.log('Manual sync mode: Use "Save Back to OneDrive" in Settings to update your file.');
-            }
           } catch (error) {
             console.error('Error loading file:', error);
             setFileError('Error loading file: ' + error.message);
@@ -1345,44 +1337,7 @@ function applyTimeframe(value, options = {}) {
     }
   }
   
-  // Save Back to OneDrive (updates the imported file)
-  async function handleSaveBackToOneDrive() {
-    try {
-      // Get ConquerJournal data and combine with planner
-      let conquerData = null;
-      if (typeof getAllConquerJournalData === 'function') {
-        try {
-          conquerData = getAllConquerJournalData();
-        } catch (cjError) {
-          console.error('Error getting ConquerJournal data:', cjError);
-        }
-      }
-      
-      const allData = {
-        ...planner,
-        ...(conquerData ? { conquerJournal: conquerData } : {})
-      };
-      
-      // Save to OneDrive using original filename
-      const result = await saveBackToOneDrive(allData, true);
-      
-      if (result.success) {
-        setFileError(null);
-        // Optionally show success message
-        console.log('Saved back to OneDrive:', result.fileName);
-      } else if (result.cancelled) {
-        // User cancelled - no error
-        return;
-      } else {
-        setFileError(result.error || 'Error saving back to OneDrive');
-      }
-    } catch (error) {
-      console.error('Error saving back to OneDrive:', error);
-      setFileError('Error saving back to OneDrive: ' + error.message);
-    }
-  }
-  
-  // Save a Copy (creates new timestamped backup)
+  // Save a Copy - creates timestamped backup via iOS share sheet
   async function handleSaveCopy() {
     try {
       // Get ConquerJournal data and combine with planner
@@ -1400,8 +1355,8 @@ function applyTimeframe(value, options = {}) {
         ...(conquerData ? { conquerJournal: conquerData } : {})
       };
       
-      // Save as new copy (not original filename)
-      const result = await saveBackToOneDrive(allData, false);
+      // Save via share sheet
+      const result = await saveCopyToShareSheet(allData);
       
       if (result.success) {
         setFileError(null);
@@ -2465,7 +2420,7 @@ function applyTimeframe(value, options = {}) {
               </button>
             </div>
             
-            {/* Sync & Backup Section */}
+            {/* Backup Section - Simple: Import and Save a Copy */}
             <div style={{ marginBottom: '16px' }}>
               <h4 style={{ 
                 margin: '0 0 12px 0', 
@@ -2475,67 +2430,26 @@ function applyTimeframe(value, options = {}) {
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px'
               }}>
-                Sync & Backup
+                Backup
               </h4>
               
-              {/* Sync Status Display */}
-              {(() => {
-                const syncMode = getSyncMode();
-                const importedFileName = getLastImportedFileName();
-                const hasUnsaved = hasUnsavedChanges();
-                
-                return (
-                  <div style={{
-                    background: 'rgba(148, 163, 184, 0.1)',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    marginBottom: '12px',
-                    fontSize: '12px'
-                  }}>
-                    {importedFileName ? (
-                      <>
-                        <div style={{ 
-                          color: 'var(--text-muted)', 
-                          marginBottom: '4px',
-                          wordBreak: 'break-word'
-                        }}>
-                          File: {importedFileName}
-                        </div>
-                        {syncMode === 'MANUAL_SYNC_REQUIRED' && (
-                          <div style={{ 
-                            color: 'var(--accent)', 
-                            marginTop: '4px',
-                            fontSize: '11px'
-                          }}>
-                            Auto-sync isn't supported on iPhone. Your changes are saved locally. Use "Save Back to OneDrive" to update your file.
-                          </div>
-                        )}
-                        {hasUnsaved && (
-                          <div style={{ 
-                            color: '#f59e0b', 
-                            marginTop: '4px',
-                            fontSize: '11px',
-                            fontWeight: 500
-                          }}>
-                            ⚠️ Changes not yet saved back to OneDrive
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div style={{ color: 'var(--text-muted)' }}>
-                        No file imported yet. Import a file from OneDrive to get started.
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              <div style={{
+                background: 'rgba(148, 163, 184, 0.1)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '12px',
+                fontSize: '12px',
+                color: 'var(--text-muted)'
+              }}>
+                Your work is automatically saved locally. Use these options to backup to OneDrive.
+              </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <button
                   className="btn btn-ghost"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleMobileOpen();
+                    handleMobileImport();
                     setShowMobileSettings(false);
                   }}
                   style={{
@@ -2563,39 +2477,6 @@ function applyTimeframe(value, options = {}) {
                   className="btn btn-ghost"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleSaveBackToOneDrive();
-                    setShowMobileSettings(false);
-                  }}
-                  disabled={!getLastImportedFileName()}
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: getLastImportedFileName() ? 'var(--text-primary)' : 'var(--text-muted)',
-                    background: 'transparent',
-                    transition: 'all 0.2s ease',
-                    opacity: getLastImportedFileName() ? 1 : 0.6,
-                    cursor: getLastImportedFileName() ? 'pointer' : 'not-allowed'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (getLastImportedFileName()) {
-                      e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  💾 Save Back to OneDrive (Update my imported file)
-                </button>
-                <button
-                  className="btn btn-ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
                     handleSaveCopy();
                     setShowMobileSettings(false);
                   }}
@@ -2618,7 +2499,7 @@ function applyTimeframe(value, options = {}) {
                     e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  📋 Save a Copy (new backup file)
+                  💾 Save a Copy
                 </button>
               </div>
             </div>
