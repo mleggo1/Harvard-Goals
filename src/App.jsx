@@ -2464,45 +2464,105 @@ function applyTimeframe(value, options = {}) {
                 )}
               </div>
             </div>
-            {/* Save status and path display - only show on desktop */}
-            {supportsFileSystemAccess() && (
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginTop: showDesktopSettings ? '320px' : '12px',
-                padding: '8px 12px',
-                background: 'rgba(148, 163, 184, 0.1)',
-                borderRadius: '8px',
-                fontSize: '12px',
-                flexWrap: 'wrap',
-                gap: '8px',
-                transition: 'margin-top 0.2s ease'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>File Location:</span>
+            {/* Save status and path display - enhanced with better visual feedback */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginTop: showDesktopSettings ? '320px' : '12px',
+              padding: '10px 14px',
+              background: saveStatus === 'saving' 
+                ? 'rgba(56, 189, 248, 0.15)' 
+                : saveStatus === 'saved' 
+                  ? 'rgba(16, 185, 129, 0.15)' 
+                  : saveStatus === 'error'
+                    ? 'rgba(248, 113, 113, 0.15)'
+                    : 'rgba(148, 163, 184, 0.1)',
+              borderRadius: '10px',
+              fontSize: '12px',
+              flexWrap: 'wrap',
+              gap: '8px',
+              transition: 'all 0.3s ease',
+              border: saveStatus === 'saving' 
+                ? '1px solid rgba(56, 189, 248, 0.3)' 
+                : saveStatus === 'saved' 
+                  ? '1px solid rgba(16, 185, 129, 0.3)' 
+                  : saveStatus === 'error'
+                    ? '1px solid rgba(248, 113, 113, 0.3)'
+                    : '1px solid var(--border)',
+              boxShadow: saveStatus === 'saved' 
+                ? '0 2px 8px rgba(16, 185, 129, 0.2)' 
+                : 'none'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                {supportsFileSystemAccess() && (
+                  <>
+                    <span style={{ color: 'var(--text-muted)' }}>File Location:</span>
+                    <span style={{ 
+                      color: 'var(--text-primary)', 
+                      fontWeight: 500,
+                      wordBreak: 'break-word',
+                      maxWidth: '600px',
+                      fontFamily: 'monospace',
+                      fontSize: '11px'
+                    }} title={savePath || 'No file location set'}>
+                      {savePath || 'No file location set - please choose a location'}
+                    </span>
+                  </>
+                )}
+                {!supportsFileSystemAccess() && (
+                  <span style={{ color: 'var(--text-muted)' }}>Auto-saving to local storage</span>
+                )}
+                {saveStatus === 'saving' && (
                   <span style={{ 
-                    color: 'var(--text-primary)', 
-                    fontWeight: 500,
-                    wordBreak: 'break-word',
-                    maxWidth: '600px',
-                    fontFamily: 'monospace',
-                    fontSize: '11px'
-                  }} title={savePath || 'No file location set'}>
-                    {savePath || 'No file location set - please choose a location'}
+                    color: 'var(--accent)', 
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span style={{
+                      display: 'inline-block',
+                      width: '12px',
+                      height: '12px',
+                      border: '2px solid var(--accent)',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite'
+                    }}></span>
+                    Saving...
                   </span>
-                  {saveStatus === 'saving' && (
-                    <span style={{ color: 'var(--accent)', fontSize: '11px' }}>💾 Saving...</span>
-                  )}
-                  {saveStatus === 'saved' && (
-                    <span style={{ color: '#10b981', fontSize: '11px' }}>✓ Saved</span>
-                  )}
-                  {saveStatus === 'error' && (
-                    <span style={{ color: '#f87171', fontSize: '11px' }}>⚠ Error saving</span>
-                  )}
-                </div>
+                )}
+                {saveStatus === 'saved' && (
+                  <span style={{ 
+                    color: '#10b981', 
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    animation: 'fadeInScale 0.3s ease'
+                  }}>
+                    <span style={{ fontSize: '14px' }}>✓</span>
+                    Saved
+                  </span>
+                )}
+                {saveStatus === 'error' && (
+                  <span style={{ 
+                    color: '#f87171', 
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span style={{ fontSize: '14px' }}>⚠</span>
+                    Error saving
+                  </span>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </header>
 
