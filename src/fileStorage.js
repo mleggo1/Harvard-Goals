@@ -6,6 +6,11 @@ const FILE_PATH_KEY = 'harvard_goals_file_path';
 const FILE_NAME_KEY = 'harvard_goals_file_name';
 const FILE_FULL_PATH_KEY = 'harvard_goals_file_full_path';
 const HAS_FILE_LOCATION_KEY = 'harvard_goals_has_file_location';
+const SYNC_MODE_KEY = 'harvard_goals_sync_mode'; // 'AUTO_SYNC_SUPPORTED' or 'MANUAL_SYNC_REQUIRED'
+const LAST_IMPORTED_FILE_NAME_KEY = 'harvard_goals_last_imported_file_name';
+const LAST_IMPORTED_TIMESTAMP_KEY = 'harvard_goals_last_imported_timestamp';
+const LAST_LOCAL_SAVE_AT_KEY = 'harvard_goals_last_local_save_at';
+const LAST_MANUAL_EXPORT_AT_KEY = 'harvard_goals_last_manual_export_at';
 
 // Store file handle reference (for desktop File System Access API)
 let currentFileHandle = null;
@@ -13,6 +18,87 @@ let currentFileHandle = null;
 // Check if File System Access API is supported
 function supportsFileSystemAccess() {
   return 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+}
+
+// Check if we can maintain persistent file handle (for auto-sync)
+async function canMaintainPersistentFileHandle() {
+  if (!supportsFileSystemAccess()) {
+    return false;
+  }
+  
+  // On mobile Safari, even if the API exists, we usually can't maintain persistent handles
+  // Check if we're on mobile
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    // On mobile, we can't reliably maintain persistent file handles
+    return false;
+  }
+  
+  // On desktop, if File System Access API is supported, we can try to maintain handles
+  return true;
+}
+
+// Get current sync mode
+function getSyncMode() {
+  return localStorage.getItem(SYNC_MODE_KEY) || 'MANUAL_SYNC_REQUIRED';
+}
+
+// Set sync mode
+function setSyncMode(mode) {
+  if (mode === 'AUTO_SYNC_SUPPORTED' || mode === 'MANUAL_SYNC_REQUIRED') {
+    localStorage.setItem(SYNC_MODE_KEY, mode);
+  }
+}
+
+// Get last imported file name
+function getLastImportedFileName() {
+  return localStorage.getItem(LAST_IMPORTED_FILE_NAME_KEY) || null;
+}
+
+// Set last imported file info
+function setLastImportedFileInfo(fileName) {
+  if (fileName) {
+    localStorage.setItem(LAST_IMPORTED_FILE_NAME_KEY, fileName);
+    localStorage.setItem(LAST_IMPORTED_TIMESTAMP_KEY, Date.now().toString());
+  }
+}
+
+// Get last local save timestamp
+function getLastLocalSaveAt() {
+  const timestamp = localStorage.getItem(LAST_LOCAL_SAVE_AT_KEY);
+  return timestamp ? parseInt(timestamp, 10) : null;
+}
+
+// Set last local save timestamp
+function setLastLocalSaveAt() {
+  localStorage.setItem(LAST_LOCAL_SAVE_AT_KEY, Date.now().toString());
+}
+
+// Get last manual export timestamp
+function getLastManualExportAt() {
+  const timestamp = localStorage.getItem(LAST_MANUAL_EXPORT_AT_KEY);
+  return timestamp ? parseInt(timestamp, 10) : null;
+}
+
+// Set last manual export timestamp
+function setLastManualExportAt() {
+  localStorage.setItem(LAST_MANUAL_EXPORT_AT_KEY, Date.now().toString());
+}
+
+// Check if there are unsaved changes (dirty)
+function hasUnsavedChanges() {
+  const lastLocalSave = getLastLocalSaveAt();
+  const lastManualExport = getLastManualExportAt();
+  
+  if (!lastLocalSave) {
+    return false; // No local saves yet
+  }
+  
+  if (!lastManualExport) {
+    return true; // Never exported, so there are unsaved changes
+  }
+  
+  return lastLocalSave > lastManualExport;
 }
 
 // Check if we have a file location set
@@ -544,6 +630,10 @@ async function saveToIDB(data) {
     const transaction = db.transaction(['goals_data'], 'readwrite');
     const store = transaction.objectStore('goals_data');
     await store.put(data, 'planner');
+    
+    // Track last local save timestamp
+    setLastLocalSaveAt();
+    
     return true;
   } catch (error) {
     console.error('Error saving to IndexedDB:', error);
@@ -583,17 +673,97 @@ async function loadFromFileInput(file) {
     // IMPORTANT: Set that we have a file location - this prevents popup from showing again
     setHasFileLocation(true);
     
-    // Note: On mobile, we can't get a file handle from file input
-    // The file input doesn't provide a writable handle
-    // We'll use download method for saving on mobile
+    // Store imported file info
+    setLastImportedFileInfo(fileName);
+    
+    // Detect sync mode: Check if we can maintain persistent file handle
+    const canAutoSync = await canMaintainPersistentFileHandle();
+    if (canAutoSync) {
+      // Try to get a file handle if possible (desktop)
+      setSyncMode('AUTO_SYNC_SUPPORTED');
+    } else {
+      // Mobile: Manual sync required
+      setSyncMode('MANUAL_SYNC_REQUIRED');
+    }
     
     // Save to IndexedDB immediately (this is our source of truth on mobile)
     await saveToIDB(data);
+    setLastLocalSaveAt();
     
     return data;
   } catch (error) {
     console.error('Error loading from file input:', error);
     throw error;
+  }
+}
+
+// Save Back to OneDrive (mobile) - uses iOS share sheet
+async function saveBackToOneDrive(data, useOriginalFileName = true) {
+  try {
+    // Get the filename to use
+    let fileName;
+    if (useOriginalFileName) {
+      fileName = getLastImportedFileName() || getStoredFileName() || 'goals-blueprint.json';
+    } else {
+      // Create timestamped backup filename
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
+      fileName = `ConquerJournal_Backup_${dateStr}_${timeStr}.json`;
+    }
+    
+    // Ensure .json extension
+    if (!fileName.endsWith('.json')) {
+      fileName = fileName.replace(/\.(json)?$/, '') + '.json';
+    }
+    
+    // Create a Blob with the JSON data
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Create a File object (for better compatibility with share sheet)
+    const file = new File([blob], fileName, { type: 'application/json' });
+    
+    // Check if Web Share API is available (iOS Safari supports this)
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Save Goals Blueprint',
+          text: 'Save your goals blueprint to OneDrive'
+        });
+        
+        // Update last manual export timestamp
+        setLastManualExportAt();
+        
+        return { success: true, method: 'share', fileName };
+      } catch (shareError) {
+        if (shareError.name === 'AbortError') {
+          return { success: false, cancelled: true };
+        }
+        // Fall through to download method
+        console.log('Share API failed, using download fallback:', shareError);
+      }
+    }
+    
+    // Fallback: Create download link (user can then use iOS share sheet manually)
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // Update last manual export timestamp
+    setLastManualExportAt();
+    
+    return { success: true, method: 'download', fileName };
+  } catch (error) {
+    console.error('Error saving back to OneDrive:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -767,5 +937,14 @@ export {
   loadFromIDB,
   getCurrentFileHandle,
   clearFileLocation,
-  setFilePath
+  setFilePath,
+  // New mobile sync functions
+  saveBackToOneDrive,
+  getSyncMode,
+  setSyncMode,
+  getLastImportedFileName,
+  canMaintainPersistentFileHandle,
+  hasUnsavedChanges,
+  getLastLocalSaveAt,
+  getLastManualExportAt
 };

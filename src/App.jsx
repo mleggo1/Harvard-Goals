@@ -15,7 +15,13 @@ import {
   getStoredFileName,
   supportsFileSystemAccess,
   saveToIDB,
-  saveToFile
+  saveToFile,
+  saveBackToOneDrive,
+  getSyncMode,
+  getLastImportedFileName,
+  hasUnsavedChanges,
+  getLastLocalSaveAt,
+  getLastManualExportAt
 } from "./fileStorage.js";
 import { getAllConquerJournalData, loadAllConquerJournalData } from "./ConquerJournal.jsx";
 
@@ -578,9 +584,15 @@ export default function App() {
         // Clear saved status after 2 seconds
         setTimeout(() => setSaveStatus('idle'), 2000);
       } else if (result.needsLocation) {
-        // Need to choose file location
-        setShowFileLocationPrompt(true);
-        setFileError('Please choose a file location to save your data');
+        // Only show file location prompt on desktop, not mobile
+        const isMobile = !(window.showSaveFilePicker && window.showOpenFilePicker);
+        if (!isMobile) {
+          setShowFileLocationPrompt(true);
+          setFileError('Please choose a file location to save your data');
+        } else {
+          // On mobile, just save to IndexedDB silently
+          setFileError(null);
+        }
         setSaveStatus('idle');
       } else if (result.needsReopen && result.savedToIDB) {
         // File handle lost but data saved to IndexedDB - seamless experience
@@ -1280,8 +1292,8 @@ function applyTimeframe(value, options = {}) {
         const file = e.target.files[0];
         if (file) {
           try {
-            const text = await file.text();
-            const data = JSON.parse(text);
+            // Use loadFromFileInput which handles sync mode detection
+            const data = await loadFromFileInput(file);
             
             // Load planner data
             if (data.vision10 !== undefined) {
@@ -1298,25 +1310,18 @@ function applyTimeframe(value, options = {}) {
               }
             }
             
-            // Store filename for future saves (in both places for consistency)
-            const fileName = file.name || 'goals-blueprint.json';
-            localStorage.setItem('mobile_file_name', fileName);
-            // Also store in fileStorage location for getStoredFileName() to work
-            localStorage.setItem('harvard_goals_file_name', fileName);
-            localStorage.setItem('harvard_goals_file_path', fileName);
-            localStorage.setItem('harvard_goals_file_full_path', fileName);
-            
-            // Save to IndexedDB as backup
-            if (typeof saveToIDB === 'function') {
-              try {
-                await saveToIDB(data);
-              } catch (idbError) {
-                console.error('Error saving to IndexedDB:', idbError);
-                // Continue even if IndexedDB fails
-              }
-            }
+            // Update save path display
+            const fileName = getLastImportedFileName() || file.name || 'goals-blueprint.json';
+            setSavePath(fileName);
             
             setFileError(null);
+            
+            // Show sync mode message if manual sync required
+            const syncMode = getSyncMode();
+            if (syncMode === 'MANUAL_SYNC_REQUIRED') {
+              // Optionally show a toast/notification (we'll add this to Settings UI instead)
+              console.log('Manual sync mode: Use "Save Back to OneDrive" in Settings to update your file.');
+            }
           } catch (error) {
             console.error('Error loading file:', error);
             setFileError('Error loading file: ' + error.message);
@@ -1337,6 +1342,79 @@ function applyTimeframe(value, options = {}) {
     } catch (error) {
       console.error('Error setting up file input:', error);
       setFileError('Error opening file picker: ' + error.message);
+    }
+  }
+  
+  // Save Back to OneDrive (updates the imported file)
+  async function handleSaveBackToOneDrive() {
+    try {
+      // Get ConquerJournal data and combine with planner
+      let conquerData = null;
+      if (typeof getAllConquerJournalData === 'function') {
+        try {
+          conquerData = getAllConquerJournalData();
+        } catch (cjError) {
+          console.error('Error getting ConquerJournal data:', cjError);
+        }
+      }
+      
+      const allData = {
+        ...planner,
+        ...(conquerData ? { conquerJournal: conquerData } : {})
+      };
+      
+      // Save to OneDrive using original filename
+      const result = await saveBackToOneDrive(allData, true);
+      
+      if (result.success) {
+        setFileError(null);
+        // Optionally show success message
+        console.log('Saved back to OneDrive:', result.fileName);
+      } else if (result.cancelled) {
+        // User cancelled - no error
+        return;
+      } else {
+        setFileError(result.error || 'Error saving back to OneDrive');
+      }
+    } catch (error) {
+      console.error('Error saving back to OneDrive:', error);
+      setFileError('Error saving back to OneDrive: ' + error.message);
+    }
+  }
+  
+  // Save a Copy (creates new timestamped backup)
+  async function handleSaveCopy() {
+    try {
+      // Get ConquerJournal data and combine with planner
+      let conquerData = null;
+      if (typeof getAllConquerJournalData === 'function') {
+        try {
+          conquerData = getAllConquerJournalData();
+        } catch (cjError) {
+          console.error('Error getting ConquerJournal data:', cjError);
+        }
+      }
+      
+      const allData = {
+        ...planner,
+        ...(conquerData ? { conquerJournal: conquerData } : {})
+      };
+      
+      // Save as new copy (not original filename)
+      const result = await saveBackToOneDrive(allData, false);
+      
+      if (result.success) {
+        setFileError(null);
+        console.log('Saved copy:', result.fileName);
+      } else if (result.cancelled) {
+        // User cancelled - no error
+        return;
+      } else {
+        setFileError(result.error || 'Error saving copy');
+      }
+    } catch (error) {
+      console.error('Error saving copy:', error);
+      setFileError('Error saving copy: ' + error.message);
     }
   }
 
@@ -1745,8 +1823,15 @@ function applyTimeframe(value, options = {}) {
           setTimeout(() => setSaveStatus('idle'), 2000);
         }
       } else if (result.needsLocation) {
-        setShowFileLocationPrompt(true);
-        setFileError('Please choose a file location to save your data');
+        // Only show file location prompt on desktop, not mobile
+        const isMobile = !(window.showSaveFilePicker && window.showOpenFilePicker);
+        if (!isMobile) {
+          setShowFileLocationPrompt(true);
+          setFileError('Please choose a file location to save your data');
+        } else {
+          // On mobile, just save to IndexedDB silently
+          setFileError(null);
+        }
         setSaveStatus('idle');
       } else if (result.needsReopen && result.savedToIDB) {
         // File handle lost but data saved to IndexedDB - seamless experience
@@ -1789,8 +1874,8 @@ function applyTimeframe(value, options = {}) {
   // Always render the app - never return null or blank screen
   return (
     <div className={`app-root ${theme}-skin`} style={{ minHeight: '100vh' }}>
-      {/* File location prompt (first time setup) - Beautiful, clear UI */}
-      {showFileLocationPrompt && (
+      {/* File location prompt (first time setup) - Beautiful, clear UI - NEVER show on mobile */}
+      {showFileLocationPrompt && supportsFileSystemAccess() && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -2379,106 +2464,174 @@ function applyTimeframe(value, options = {}) {
                 ✕
               </button>
             </div>
+            
+            {/* Sync & Backup Section */}
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ 
+                margin: '0 0 12px 0', 
+                fontSize: '14px', 
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Sync & Backup
+              </h4>
+              
+              {/* Sync Status Display */}
+              {(() => {
+                const syncMode = getSyncMode();
+                const importedFileName = getLastImportedFileName();
+                const hasUnsaved = hasUnsavedChanges();
+                
+                return (
+                  <div style={{
+                    background: 'rgba(148, 163, 184, 0.1)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    marginBottom: '12px',
+                    fontSize: '12px'
+                  }}>
+                    {importedFileName ? (
+                      <>
+                        <div style={{ 
+                          color: 'var(--text-muted)', 
+                          marginBottom: '4px',
+                          wordBreak: 'break-word'
+                        }}>
+                          File: {importedFileName}
+                        </div>
+                        {syncMode === 'MANUAL_SYNC_REQUIRED' && (
+                          <div style={{ 
+                            color: 'var(--accent)', 
+                            marginTop: '4px',
+                            fontSize: '11px'
+                          }}>
+                            Auto-sync isn't supported on iPhone. Your changes are saved locally. Use "Save Back to OneDrive" to update your file.
+                          </div>
+                        )}
+                        {hasUnsaved && (
+                          <div style={{ 
+                            color: '#f59e0b', 
+                            marginTop: '4px',
+                            fontSize: '11px',
+                            fontWeight: 500
+                          }}>
+                            ⚠️ Changes not yet saved back to OneDrive
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ color: 'var(--text-muted)' }}>
+                        No file imported yet. Import a file from OneDrive to get started.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button
+                  className="btn btn-ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMobileOpen();
+                    setShowMobileSettings(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    background: 'transparent',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  📥 Import from OneDrive
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSaveBackToOneDrive();
+                    setShowMobileSettings(false);
+                  }}
+                  disabled={!getLastImportedFileName()}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: getLastImportedFileName() ? 'var(--text-primary)' : 'var(--text-muted)',
+                    background: 'transparent',
+                    transition: 'all 0.2s ease',
+                    opacity: getLastImportedFileName() ? 1 : 0.6,
+                    cursor: getLastImportedFileName() ? 'pointer' : 'not-allowed'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (getLastImportedFileName()) {
+                      e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  💾 Save Back to OneDrive (Update my imported file)
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSaveCopy();
+                    setShowMobileSettings(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    background: 'transparent',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  📋 Save a Copy (new backup file)
+                </button>
+              </div>
+            </div>
+            
+            <div style={{
+              height: '1px',
+              background: 'var(--border)',
+              margin: '16px 0',
+              opacity: 0.5
+            }} />
+            
+            {/* Other Options */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                className="btn btn-ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMobileOpen();
-                  setShowMobileSettings(false);
-                }}
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  background: 'transparent',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                📂 Open
-              </button>
-              <button
-                className="btn btn-ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMobileSaveAs();
-                  setShowMobileSettings(false);
-                }}
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  background: 'transparent',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                💾 Save As
-              </button>
-              <input
-                type="file"
-                accept=".json"
-                onChange={(e) => {
-                  loadPlanJson(e);
-                  setShowMobileSettings(false);
-                }}
-                id="file-input-mobile-settings"
-                style={{ display: "none" }}
-              />
-              <label
-                htmlFor="file-input-mobile-settings"
-                className="btn btn-ghost"
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  background: 'transparent',
-                  transition: 'all 0.2s ease'
-                }}
-                onClick={() => setShowMobileSettings(false)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                📥 Import
-              </label>
-              <div style={{
-                height: '1px',
-                background: 'var(--border)',
-                margin: '8px 0',
-                opacity: 0.5
-              }} />
               <button
                 className="btn btn-ghost"
                 onClick={(e) => {
