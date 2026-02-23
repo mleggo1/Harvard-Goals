@@ -407,17 +407,8 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
   const [showFileLocationPrompt, setShowFileLocationPrompt] = useState(false);
   const [fileError, setFileError] = useState(null);
-  // Always start as initialized on mobile to ensure app renders immediately
-  const [isInitialized, setIsInitialized] = useState(() => {
-    try {
-      if (typeof window === 'undefined') return false;
-      // Check if mobile - if File System Access API is not available, we're on mobile
-      const isMobile = !(window.showSaveFilePicker && window.showOpenFilePicker);
-      return isMobile; // true on mobile (renders immediately), false on desktop (waits for init)
-    } catch {
-      return true; // Default to true to ensure app renders
-    }
-  });
+  // Start as not initialized so we never auto-save before load completes (avoids overwriting IndexedDB with empty state)
+  const [isInitialized, setIsInitialized] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileSettings, setShowMobileSettings] = useState(false);
   const [showDesktopSettings, setShowDesktopSettings] = useState(false);
