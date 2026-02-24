@@ -812,6 +812,17 @@ export default function App() {
       });
   }, [goals]);
 
+  /** All 100% complete goals in date order (newest first) for review */
+  const goalArchiveList = useMemo(() => {
+    return [...goals]
+      .filter((g) => g.status === "Done" || g.progress === 100)
+      .sort((a, b) => {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : (a.deadline ? new Date(a.deadline).getTime() : 0);
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : (b.deadline ? new Date(b.deadline).getTime() : 0);
+        return dateB - dateA; // Most recently completed first
+      });
+  }, [goals]);
+
   const goalsDueSoon = useMemo(() => {
     const today = startOfToday();
     const targetDate = addDays(today, dueDateRange);
@@ -3262,7 +3273,11 @@ function applyTimeframe(value, options = {}) {
                               onChange={(e) => {
                                 const newProgress = Number(e.target.value);
                                 const newStatus = getStatusFromProgress(newProgress);
-                                updateGoal(goal.id, { progress: newProgress, status: newStatus });
+                                const updates = { progress: newProgress, status: newStatus };
+                                if (newProgress === 100 && goal.progress !== 100) {
+                                  updates.completedAt = new Date().toISOString();
+                                }
+                                updateGoal(goal.id, updates);
                               }}
                             />
                             <span>{goal.progress}%</span>
@@ -3577,99 +3592,68 @@ function applyTimeframe(value, options = {}) {
               )}
             </article>
 
-            {completedGoals.length > 0 && (
-              <article className="card card-completed">
+            {goalArchiveList.length > 0 && (
+              <article className="card card-goal-archive">
                 <header className="card-header">
                   <div className="card-title">
-                    <span className="icon">🎉</span>
-                    <span>Completed Goals</span>
+                    <span className="icon">📋</span>
+                    <span>Goal Archive</span>
                   </div>
-                  <p>Celebrate your wins! Time to reward yourself for these achievements.</p>
+                  <p>All goals 100% complete, in date order. Review and celebrate your wins.</p>
                 </header>
-                <div className="completed-goals-list">
-                  {completedGoals.map((goal) => (
-                    <div key={goal.id} className="completed-goal-card">
-                      <div className="completed-goal-header">
-                        <div className="completed-badge">✓</div>
-                        <div className="completed-goal-content">
+                <div className="goal-archive-list">
+                  {goalArchiveList.map((goal) => (
+                    <div key={goal.id} className={`goal-archive-card ${goal.archived ? 'is-archived' : ''}`}>
+                      <div className="goal-archive-header">
+                        <div className="goal-archive-badge">{goal.archived ? '📦' : '✓'}</div>
+                        <div className="goal-archive-content">
                           <h4>{goal.text}</h4>
                           <p>
                             {goal.area} · {formatTimeframeLabel(goal.timeframe)}
                           </p>
                         </div>
-                        <div className="completed-actions">
-                          <div className="completed-date">
-                            {goal.completedAt 
+                        <div className="goal-archive-meta">
+                          <div className="goal-archive-date">
+                            {goal.completedAt
                               ? new Date(goal.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                              : goal.deadline 
+                              : goal.deadline
                                 ? new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                                 : 'Completed'}
                           </div>
-                          <button 
-                            className="btn btn-ghost btn-archive"
-                            onClick={() => archiveGoal(goal.id)}
-                            title="Archive this goal"
-                          >
-                            📦 Archive
-                          </button>
+                          {goal.archived ? (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-unarchive"
+                              onClick={(e) => { e.stopPropagation(); unarchiveGoal(goal.id); }}
+                              title="Restore this goal"
+                            >
+                              ↺ Restore
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-archive"
+                              onClick={(e) => { e.stopPropagation(); archiveGoal(goal.id); }}
+                              title="Archive this goal"
+                            >
+                              📦 Archive
+                            </button>
+                          )}
                         </div>
                       </div>
-                      {goal.reward && goal.reward.trim() && (
-                        <div className="completed-reward">
-                          <div className="reward-header">
-                            <span className="reward-icon">🎁</span>
-                            <span className="reward-label">Your Reward:</span>
-                          </div>
-                          <div className="reward-text">{goal.reward}</div>
-                          <div className="reward-cta">Time to celebrate! 🎊</div>
+                      {!goal.archived && goal.reward && goal.reward.trim() && (
+                        <div className="goal-archive-reward">
+                          <span className="reward-icon">🎁</span>
+                          <span className="reward-label">Your reward:</span>
+                          <span className="reward-text">{goal.reward}</span>
                         </div>
                       )}
-                      {(!goal.reward || !goal.reward.trim()) && (
-                        <div className="completed-reward-empty">
+                      {!goal.archived && (!goal.reward || !goal.reward.trim()) && (
+                        <div className="goal-archive-reward-empty">
                           <span className="reward-icon">💭</span>
-                          <span>No reward planned yet. What will you do to celebrate this achievement?</span>
+                          <span>No reward planned yet.</span>
                         </div>
                       )}
-                    </div>
-                  ))}
-                </div>
-              </article>
-            )}
-
-            {archivedGoals.length > 0 && (
-              <article className="card card-archived">
-                <header className="card-header">
-                  <div className="card-title">
-                    <span className="icon">📦</span>
-                    <span>Archived Goals</span>
-                  </div>
-                  <p>Your completed goals history. Keep these for inspiration and reflection.</p>
-                </header>
-                <div className="archived-goals-list">
-                  {archivedGoals.map((goal) => (
-                    <div key={goal.id} className="archived-goal-card">
-                      <div className="archived-goal-header">
-                        <div className="archived-badge">📦</div>
-                        <div className="archived-goal-content">
-                          <h4>{goal.text}</h4>
-                          <p>
-                            {goal.area} · {formatTimeframeLabel(goal.timeframe)}
-                            {goal.completedAt && (
-                              <span className="archived-date">
-                                {' · Completed '}
-                                {new Date(goal.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        <button 
-                          className="btn btn-ghost btn-unarchive"
-                          onClick={() => unarchiveGoal(goal.id)}
-                          title="Restore this goal"
-                        >
-                          ↺ Restore
-                        </button>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -3760,7 +3744,7 @@ function applyTimeframe(value, options = {}) {
 
         <footer className="app-footer">
           <div>
-            Saved locally in your browser. Export or print anytime. Built for bold humans.
+            Saved locally in your browser. Export or print anytime. Built by Michael Leggo for <strong>bold</strong> humans.
           </div>
           <div className="footer-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div>Inspired by the Harvard Goals Study · Educational use only.</div>

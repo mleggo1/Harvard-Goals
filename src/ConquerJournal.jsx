@@ -1021,7 +1021,7 @@ function TodayPage({ entry, updateEntryField, updateGratitude, updateMovement, a
                       }}
                     >
                       <option value="">Select a goal from your Goals page...</option>
-                      {goals.filter(g => !g.archived && g.status !== 'Completed').map(g => (
+                      {goals.filter(g => !g.archived && g.status !== 'Done').map(g => (
                         <option key={g.id} value={g.text}>
                           {g.text.length > 60 ? g.text.substring(0, 60) + '...' : g.text}
                         </option>
